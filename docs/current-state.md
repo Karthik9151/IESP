@@ -1,66 +1,112 @@
 # Current Repository State
 
-Audit date: 2026-10-06  
-Repository: Karthik9151/IESP  
-Default branch: main  
-Branch under development: v0.3  
-Milestone status: Milestone 2 code implemented; real-data acceptance pending
+**Audit date:** 2026-10-06  
+**Repository:** Karthik9151/IESP  
+**Default branch:** main  
+**Milestone status:** Milestone 2 code implemented; real-data acceptance pending
 
 ## Repository inventory
 
-The repository contains the Milestone 0 foundation, Milestone 1 dataset
-pipeline, and the Milestone 2 phishing baseline.
+The repository now contains the Milestone 0 foundation plus the Milestone 1 dataset pipeline:
 
-### Milestone 2 files
-
-- src/ml/phishing/__init__.py
-- src/ml/phishing/features.py
-- src/ml/phishing/train.py
-- src/ml/phishing/predict.py
-- src/ml/phishing/evaluate.py
-- configs/phishing.yaml
-- scripts/run_phishing_model.py
-- tests/test_phishing_model.py
-- docs/ml-methodology.md
-- docs/milestone2-acceptance-report.md
+.
+├── README.md
+├── .env.example
+├── .gitignore
+├── requirements-ml.txt
+├── .github/
+│   └── workflows/
+│       └── .gitkeep
+├── app/
+│   └── .gitkeep
+├── configs/
+│   └── dataset.yaml
+├── data/
+│   └── .gitkeep
+├── docs/
+│   ├── architecture.md
+│   ├── current-state.md
+│   ├── dataset.md
+│   ├── deployment.md
+│   ├── implementation-plan.md
+│   ├── limitations.md
+│   ├── mail-integrations.md
+│   ├── milestone1-acceptance-report.md
+│   ├── ml-methodology.md
+│   └── threat-model.md
+├── frontend/
+│   └── .gitkeep
+├── models/
+│   └── .gitkeep
+├── notebooks/
+│   └── .gitkeep
+├── scripts/
+│   ├── run_dataset_pipeline.py
+│   └── .gitkeep
+├── src/
+│   ├── __init__.py
+│   └── ml/
+│       ├── __init__.py
+│       └── data/
+│           ├── __init__.py
+│           └── pipeline.py
+└── tests/
+    ├── test_dataset_pipeline.py
+    └── .gitkeep
 
 ## Functionality status
 
 | Area | Current state |
 |---|---|
-| Milestone 1 dataset preparation | Implemented and previously accepted |
-| Phishing TF-IDF features | Implemented |
-| Phishing LinearSVC baseline | Implemented |
-| Validation/test evaluation | Implemented |
-| Model persistence | Implemented; artifacts remain ignored |
-| Real-data M2 execution | Pending authoritative Parquet availability |
+| Milestone 1 dataset preparation | Implemented |
+| Dataset provenance/documentation | Implemented |
+| Exact full-record deduplication | Implemented |
+| Text normalization | Implemented |
+| Stratified train/validation/test split | Implemented |
+| Split leakage/integrity checks | Implemented |
+| Dataset manifest generation | Implemented |
 | FastAPI backend | Not implemented |
 | React/Vite frontend | Not implemented |
+| Phishing SVM | Implemented on v0.3; real-data acceptance pending |
 | Priority Logistic Regression | Not implemented |
 | Enhanced security engine | Not implemented |
-| Gmail / Graph / IMAP | Not implemented |
-| Docker / DevSecOps | Not implemented |
+| Gmail integration | Not implemented |
+| Microsoft Graph integration | Not implemented |
+| Generic IMAP integration | Not implemented |
 | Database | Not implemented |
+| Docker | Not implemented |
+| GitHub Actions CI | Placeholder only |
+| Model artifacts | Not committed; generated locally by M2 runner |
 
-## M1 reference
+## Milestone 1 verified dataset
 
-Accepted M1 project fingerprint:
+The accepted Colab audit verified:
 
-34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582
+- Raw records: 108,685
+- Usable labeled-text records: 108,683
+- Exact duplicate copies: 13
+- Final unique records: 108,670
+- Benign: 60,636
+- Phishing: 48,034
+- Train: 76,069
+- Validation: 16,300
+- Test: 16,301
+- Random state: 42
+- Stratification: label
+- Project fingerprint: 34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582
 
-Accepted split counts:
-- train: 76,069
-- validation: 16,300
-- test: 16,301
+See docs/dataset.md and docs/milestone1-acceptance-report.md for the complete acceptance record.
 
-M2 does not alter the M1 data pipeline.
+## Data storage policy
 
-## Data and artifact policy
+The authoritative MeAJOR Parquet file is not stored in the repository. The repository .gitignore excludes raw and processed data. The pipeline reads the source file from a local or Colab path and writes generated Parquet outputs under data/processed/.
 
-The authoritative MeAJOR Parquet is not committed to GitHub.
-Generated processed data and model binaries remain ignored by .gitignore.
+## Research and security constraints
 
-## Acceptance boundary
+1. Email content remains untrusted data.
+2. No attachment execution or automatic URL visits are implemented here.
+3. TF-IDF has not been fitted in Milestone 1.
+4. Model preprocessing belongs after the split and must be fitted only on training data.
+5. Historical performance claims are not considered reproduced results.
 
-M2 implementation is complete on this branch, but full milestone acceptance
-is pending real-data execution. No fabricated performance metrics are recorded.
+Milestone 0 and Milestone 1 are complete. Milestone 2 is implemented on v0.3, with real-data acceptance pending because the authoritative Parquet is not available in this environment. See docs/milestone2-acceptance-report.md.
