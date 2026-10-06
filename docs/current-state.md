@@ -3,7 +3,7 @@
 **Audit date:** 2026-10-06  
 **Repository:** Karthik9151/IESP  
 **Default branch:** main  
-**Branches:** main only
+**Branches:** `main`, `milestone-0-architecture`
 
 ## Existing files
 
@@ -12,6 +12,7 @@ The audited repository currently contains:
 ```text
 .
 ├── README.md
+├── app              # empty file; not an application directory
 ├── .env.example
 ├── .gitignore
 └── docs/
@@ -51,6 +52,7 @@ No application implementation was found.
 | Docker | Not implemented |
 | Database | Not implemented |
 | Secrets/configuration | Empty `.env.example`; no application secrets found |
+| `app` entry | Empty file; no source code |
 
 The existing files under `docs/` are documentation placeholders. They are retained and populated as part of Milestone 0; useful existing work is not deleted.
 
