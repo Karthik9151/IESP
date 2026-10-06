@@ -20,12 +20,11 @@ exact leakage, and documented.
 
 **Milestone 2 — Phishing ML: IMPLEMENTED; REAL-DATA ACCEPTANCE PENDING**
 
-Branch v0.3 contains a leakage-safe TF-IDF + LinearSVC phishing baseline,
-prediction/evaluation utilities, tests, configuration, and a real-data runner.
+IESP contains a leakage-safe TF-IDF + LinearSVC phishing baseline, prediction/evaluation utilities, tests, configuration, and a full authoritative-data acceptance runner.
 The authoritative Parquet is not committed to GitHub, so final performance
 metrics must be produced in a controlled local/Colab environment.
 
-Backend, frontend, enhanced security engine, mail integrations, CI/CD, and deployment remain deferred.
+M3 priority ML, M4 security analysis, and M5 FastAPI application layers are implemented. Provider mail integrations, frontend UI, CI/CD, Docker, deployment, and production model serving remain future work.
 
 ### Milestone 2 implementation
 
@@ -35,8 +34,10 @@ Backend, frontend, enhanced security engine, mail integrations, CI/CD, and deplo
 - src/ml/phishing/evaluate.py — required classification metrics and confusion matrix.
 - configs/phishing.yaml — reproducible feature/model/evaluation configuration.
 - scripts/run_phishing_model.py — trains on M1 train and evaluates validation/test.
+- scripts/run_m2_acceptance.py — re-runs accepted M1 preparation, gates on the accepted fingerprint/split counts, trains without row limits, audits TF-IDF state, performs deterministic retraining, and writes acceptance evidence.
 - tests/test_phishing_model.py — leakage, dimensions, determinism, persistence and evaluation tests.
 - docs/ml-methodology.md — methodology and score semantics.
+- tests/test_m2_acceptance_runner.py — verifies artifact hash and save/load prediction equivalence.
 - docs/milestone2-acceptance-report.md — acceptance boundary and required evidence.
 
 The LinearSVC decision_function output is a ranking margin, **not a probability**.
