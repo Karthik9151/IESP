@@ -6,7 +6,7 @@ from src.domain.models import SecuritySignal, Severity
 
 _SCRIPT_RE = re.compile(r"<\s*script\b", re.I)
 _EVENT_HANDLER_RE = re.compile(r"\bon[a-z]+\s*=", re.I)
-_JS_SCHEME_RE = re.compile(r"(?:href|src)\s*=\s*["']?\s*javascript:", re.I)
+_JS_SCHEME_RE = re.compile(r"""(?:href|src)\s*=\s*["']?\s*javascript:""", re.I)
 _HIDDEN_FORM_RE = re.compile(r"<\s*(?:form|input)\b", re.I)
 
 
