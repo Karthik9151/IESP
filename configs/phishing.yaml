@@ -1,0 +1,30 @@
+phishing:
+  text_column: text_normalized
+  label_column: label
+
+  features:
+    analyzer: word
+    lowercase: true
+    strip_accents: unicode
+    ngram_range: [1, 2]
+    min_df: 2
+    max_df: 0.98
+    sublinear_tf: true
+    max_features: null
+
+  model:
+    algorithm: LinearSVC
+    C: 1.0
+    class_weight: null
+    max_iter: 5000
+    random_state: 42
+
+  evaluation:
+    positive_class: 1
+    positive_class_name: phishing
+    validation_role: model_selection_and_diagnostics
+    test_role: final_held_out_evaluation
+
+  artifacts:
+    pipeline: models/phishing/phishing_pipeline.joblib
+    metadata: models/phishing/metadata.json
