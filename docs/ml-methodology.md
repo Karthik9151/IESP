@@ -74,8 +74,8 @@ For full acceptance directly from the authoritative MeAJOR file:
 
 The full acceptance runner applies the same accepted M1 preparation code,
 enforces the accepted project fingerprint and split counts, trains on train
-only, evaluates validation/test separately, performs a deterministic
-retraining check unless explicitly disabled, and writes JSON evidence.
+only, evaluates validation/test separately, performs the deterministic
+retraining check as part of acceptance, and writes JSON evidence.
 
 No sampling or artificial row cap is applied.
 
