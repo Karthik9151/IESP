@@ -1,0 +1,84 @@
+name: Verify IESP M1 dataset contract
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-m1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ML dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-ml.txt -r requirements-api.txt
+
+      - name: Download authoritative MeAJOR dataset
+        run: |
+          curl --fail --location --retry 4 --retry-all-errors \
+            "https://zenodo.org/records/18471483/files/meajor_cleaned_preprocessed.parquet.gzip?download=1" \
+            --output meajor_cleaned_preprocessed.parquet.gzip
+
+      - name: Verify source dataset checksum
+        run: |
+          actual="$(md5sum meajor_cleaned_preprocessed.parquet.gzip | cut -d' ' -f1)"
+          echo "MD5 actual:   $actual"
+          echo "MD5 expected: 78e397ad8447bcdba5a98097921ba8bd"
+          test "$actual" = "78e397ad8447bcdba5a98097921ba8bd"
+
+      - name: Run accepted M1 dataset pipeline
+        run: |
+          python scripts/run_dataset_pipeline.py \
+            --input meajor_cleaned_preprocessed.parquet.gzip \
+            --output-dir data/processed
+
+      - name: Compare with the accepted M1 contract
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          m = json.loads(Path("data/processed/dataset_manifest.json").read_text(encoding="utf-8"))
+          expected_fp = "34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582"
+          expected_splits = {"train": 76069, "validation": 16300, "test": 16301}
+          expected_prep = {
+              "raw_records": 108685,
+              "usable_labeled_text_records": 108683,
+              "exact_duplicate_copies": 13,
+              "final_unique_records": 108670,
+          }
+
+          rows = [("project_fingerprint", expected_fp, m["project_fingerprint"])]
+          for k, v in expected_splits.items():
+              rows.append((f"{k} records", v, m["splits"][k]["records"]))
+          for k, v in expected_prep.items():
+              rows.append((k, v, m["preparation"][k]))
+
+          lines = ["| check | expected | actual | result |", "|---|---|---|---|"]
+          ok = True
+          for name, exp, act in rows:
+              good = exp == act
+              ok &= good
+              lines.append(f"| {name} | `{exp}` | `{act}` | {'PASS' if good else 'FAIL'} |")
+          report = "\n".join(lines)
+          print(report)
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              Path(summary).write_text("## IESP M1 contract check\n\n" + report + "\n", encoding="utf-8")
+          raise SystemExit(0 if ok else 1)
+          PY
+
+      - name: Diagnose fingerprint mismatch
+        if: failure() && hashFiles('scripts/diagnose_m1.py') != ''
+        run: python scripts/diagnose_m1.py meajor_cleaned_preprocessed.parquet.gzip
