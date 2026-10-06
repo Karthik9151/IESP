@@ -7,7 +7,7 @@ import uuid
 from email.utils import parseaddr
 
 import yaml
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
