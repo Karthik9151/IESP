@@ -1,0 +1,53 @@
+priority:
+  text_column: text_normalized
+  proxy_labels:
+    p1_threshold: 4
+    p2_threshold: 2
+    urgency_keywords:
+      - urgent
+      - immediately
+      - asap
+      - right away
+      - action required
+      - respond now
+      - today
+      - within 24 hours
+    deadline_keywords:
+      - deadline
+      - due by
+      - due today
+      - expires
+      - expiration
+      - before friday
+      - by friday
+      - by end of day
+    action_keywords:
+      - verify
+      - confirm
+      - review
+      - approve
+      - submit
+      - complete
+      - respond
+      - reply
+      - sign
+      - pay
+  features:
+    urgency_keywords: [urgent, immediately, asap, "right away", "action required", "respond now", today, "within 24 hours"]
+    deadline_keywords: [deadline, "due by", "due today", expires, expiration, "before friday", "by friday", "by end of day"]
+    action_keywords: [verify, confirm, review, approve, submit, complete, respond, reply, sign, pay]
+  model:
+    algorithm: LogisticRegression
+    C: 1.0
+    max_iter: 1000
+    class_weight: null
+    random_state: 42
+    solver: lbfgs
+    multi_class: auto
+  evaluation:
+    labels: [P1, P2, P3]
+    validation_role: model_selection_and_diagnostics
+    test_role: final_held_out_evaluation
+  artifacts:
+    pipeline: models/priority/priority_pipeline.joblib
+    metadata: models/priority/metadata.json
