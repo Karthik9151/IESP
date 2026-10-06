@@ -168,7 +168,7 @@ jobs:
             models/phishing/phishing_pipeline.joblib \
             "models/phishing/metadata.json#phishing-metadata.json" \
             models/phishing/phishing_metrics.json \
-            models/priority/priority_pipeline.jobjob \
+            models/priority/priority_pipeline.joblib \
             "models/priority/metadata.json#priority-metadata.json" \
             models/priority/priority_metrics.json \
             models/model-manifest.json \
