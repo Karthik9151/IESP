@@ -31,8 +31,9 @@ vocabulary and IDF statistics cannot use validation or test text.
 Validation and test data are transformed by the already-fitted pipeline.
 No TF-IDF fitting occurs on those splits.
 
-Unit tests verify that transforming validation text does not change the
-fitted vocabulary.
+The full acceptance runner also records the fitted vocabulary size and feature
+matrix shapes and verifies that validation/test transformation leaves both the
+vocabulary and IDF state unchanged.
 
 ### Evaluation
 
@@ -56,37 +57,38 @@ Generated artifacts remain ignored by Git:
 
 - models/phishing/phishing_pipeline.joblib
 - models/phishing/metadata.json
+- models/phishing/m2_acceptance.json
 
-The repository versions model code and configuration rather than large binary
-model artifacts.
+The metadata includes the artifact size and SHA-256 digest so an externally
+generated model can be integrity-checked without committing the binary.
 
-### Reproducible runner
+### Runners
 
 After Milestone 1 data preparation:
 
     python scripts/run_phishing_model.py
 
-Optional paths:
+For full acceptance directly from the authoritative MeAJOR file:
 
-    python scripts/run_phishing_model.py \
-      --train data/processed/train.parquet \
-      --validation data/processed/validation.parquet \
-      --test data/processed/test.parquet \
-      --metrics-output /tmp/iesp-phishing-metrics.json
+    python scripts/run_m2_acceptance.py       --input meajor_cleaned_preprocessed.parquet.gzip
+
+The full acceptance runner applies the same accepted M1 preparation code,
+enforces the accepted project fingerprint and split counts, trains on train
+only, evaluates validation/test separately, performs a deterministic
+retraining check unless explicitly disabled, and writes JSON evidence.
+
+No sampling or artificial row cap is applied.
 
 ### Real-data acceptance status
 
-The M2 implementation is present on v0.3. However, the authoritative MeAJOR
-Parquet is not stored in the repository and is not available as a usable local
-copy in the current environment. Therefore no real-data performance metrics
-are claimed.
+The implementation is complete, but full research acceptance still requires
+executing the new runner against the exact authoritative Parquet and retaining
+the resulting metrics/artifact evidence.
 
-Full M2 acceptance requires:
-1. Reproduce the accepted M1 project fingerprint exactly.
-2. Train on the M1 train split only.
-3. Record validation metrics separately.
-4. Record final held-out test metrics.
-5. Confirm deterministic rerun behavior.
-6. Confirm artifact save/load reproduces predictions.
+The accepted M1 project fingerprint is:
+
+34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582
+
+No real-data performance number is claimed until that execution occurs.
 
 No historical performance number is treated as a reproduced M2 result.
