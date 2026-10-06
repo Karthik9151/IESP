@@ -121,11 +121,6 @@ def main() -> None:
     parser.add_argument(
         "--metrics-output", default="models/phishing/m2_acceptance.json"
     )
-    parser.add_argument(
-        "--no-retrain-check",
-        action="store_true",
-        help="Skip the second full training run. Full acceptance requires leaving this off.",
-    )
     args = parser.parse_args()
 
     dataset_cfg = load_config(args.dataset_config)["dataset"]
@@ -206,31 +201,26 @@ def main() -> None:
         },
     )
 
+    model_again = train_phishing_model(train_df, phishing_cfg)
+    first_labels = predict_labels(model, test_df[phishing_cfg["text_column"]])
+    second_labels = predict_labels(
+        model_again, test_df[phishing_cfg["text_column"]]
+    )
+    first_scores = predict_scores(model, test_df[phishing_cfg["text_column"]])
+    second_scores = predict_scores(
+        model_again, test_df[phishing_cfg["text_column"]]
+    )
+
+    labels_equal = np.array_equal(first_labels, second_labels)
+    scores_equal = np.allclose(first_scores, second_scores, rtol=0, atol=0)
+    if not labels_equal or not scores_equal:
+        raise AssertionError("Deterministic retraining check failed.")
+
     retrain_check = {
-        "status": "SKIPPED",
-        "reason": "explicit --no-retrain-check",
+        "status": "PASS",
+        "labels_equal": True,
+        "scores_equal": True,
     }
-    if not args.no_retrain_check:
-        model_again = train_phishing_model(train_df, phishing_cfg)
-        first_labels = predict_labels(model, test_df[phishing_cfg["text_column"]])
-        second_labels = predict_labels(
-            model_again, test_df[phishing_cfg["text_column"]]
-        )
-        first_scores = predict_scores(model, test_df[phishing_cfg["text_column"]])
-        second_scores = predict_scores(
-            model_again, test_df[phishing_cfg["text_column"]]
-        )
-
-        labels_equal = np.array_equal(first_labels, second_labels)
-        scores_equal = np.allclose(first_scores, second_scores, rtol=0, atol=0)
-        if not labels_equal or not scores_equal:
-            raise AssertionError("Deterministic retraining check failed.")
-
-        retrain_check = {
-            "status": "PASS",
-            "labels_equal": True,
-            "scores_equal": True,
-        }
 
     artifact_sha256 = sha256_file(artifact_path)
 
