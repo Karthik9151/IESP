@@ -44,8 +44,7 @@ def _to_email(payload: EmailRequest) -> EmailMessage:
     if "@" not in address:
         raise HTTPException(status_code=422, detail={"code": "INVALID_REQUEST", "message": "Invalid sender address."})
     sender_domain = address.rsplit("@", 1)[1].lower().rstrip(".")
-    urls = _extract_urls(f"{payload.text_body}
-{payload.html_body}")
+    urls = _extract_urls(f"{payload.text_body}\n{payload.html_body}")
     if len(urls) > 50:
         raise HTTPException(status_code=422, detail={"code": "INVALID_REQUEST", "message": "Too many URLs in message content."})
     attachments = tuple(AttachmentMetadata(a.filename, a.content_type, a.size_bytes, a.disposition) for a in payload.attachments)
