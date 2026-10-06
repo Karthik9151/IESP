@@ -58,4 +58,3 @@ def evaluate_predictions(
         "positive_class": "phishing (1)",
         "score_semantics": "LinearSVC decision_function margin; not a probability",
     }
-}
