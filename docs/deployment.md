@@ -17,17 +17,17 @@ Start the frontend with `cd frontend && npm install && npm run dev`.
 
 The production backend requires both ML runtime artifacts.
 
-Use the manual GitHub Actions workflow:
+`.github/workflows/build-model-release.yml` downloads the authoritative MeAJOR release from Zenodo, verifies its checksum and accepted M1 contract, trains both models, verifies the artifacts, and publishes them to the public GitHub Release `models-v1`.
 
-`.github/workflows/build-model-release.yml`
-
-It downloads the authoritative MeAJOR release from Zenodo, verifies its checksum and accepted M1 contract, trains both models, verifies the artifacts, and publishes them to the public GitHub Release `models-v1`.
+The workflow remains manually runnable and also runs automatically on `main` when the model-building workflow, M1 pipeline, ML code/configuration, or ML dependencies change.
 
 The dataset itself is never committed to GitHub.
 
 ## Docker
 
-After the `models-v1` release exists:
+The Docker image no longer downloads model artifacts during `docker build`. This keeps image construction independent from the availability of the external model release.
+
+At container startup, `scripts/bootstrap_models.py` downloads `models-v1` when required, validates the release manifest, checks the accepted M1 fingerprint/split contract, verifies SHA-256 and file size for both artifacts, and then starts the API. Existing valid artifacts are reused.
 
 ```bash
 docker build -t iesp-backend .
@@ -37,11 +37,13 @@ docker run --rm -p 8000:8000 \
   iesp-backend
 ```
 
-The Docker build downloads the two model artifacts from the pinned release tag and verifies SHA-256 plus the accepted M1 fingerprint/split contract.
+If `models-v1` does not yet exist, the image can still be built, but the container will not start until the release is published.
 
 ## Render
 
-The Render backend service uses the repository Dockerfile. Once `models-v1` has been published, trigger a new Render deploy from the `main` branch.
+The Render backend service uses the repository Dockerfile. Build success no longer depends on the model release being present.
+
+After `models-v1` is published, deploy/restart the backend so the startup bootstrap can download and verify the artifacts.
 
 After deployment, verify:
 
@@ -60,4 +62,4 @@ Render's free filesystem is ephemeral, so SQLite data is not durable across rest
 
 ## Status
 
-Model-release automation is IMPLEMENTED. External deployment remains PENDING until the model-release workflow and Render rebuild are actually observed to succeed.
+Model-release automation is IMPLEMENTED. External deployment remains PENDING until the model-release workflow and Render readiness are actually observed to succeed.
