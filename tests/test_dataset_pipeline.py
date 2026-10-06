@@ -42,7 +42,7 @@ def make_row(label: int, body: str, subject: str = "Subject") -> dict:
 
 def test_normalize_text_preserves_security_tokens():
     raw = "https://Example.com/a?x=1\r\n\r\n\t[URL]   urgent"
-    assert normalize_text(raw) == "https://Example.com/a?x=1\n\n [URL] urgent"
+    assert normalize_text(raw) == "https://Example.com/a?x=1\n\n[URL] urgent"
 
 
 def test_prepare_dataset_removes_only_missing_label_body_and_exact_duplicates():
