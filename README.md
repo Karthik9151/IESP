@@ -12,23 +12,40 @@ Security evaluation always happens before priority classification.
 
 ### Current status
 
-**Milestone 0 — Repository audit and architecture**
+**Milestone 1 — Dataset + ML pipeline foundation: COMPLETE**
 
-The repository foundation and architecture are being established. The ML models, enhanced security engine implementation, API, frontend, mail integrations, testing, CI/CD, and deployment are intentionally deferred to their later milestones.
+The authoritative MeAJOR dataset was verified in Google Colab, structurally prepared, exactly deduplicated, validated, split with stratification, checked for cross-split exact leakage, and documented. The repository now contains the reproducible dataset pipeline implementation.
+
+**Milestone 2 — Phishing ML:** not started.
+
+Backend, frontend, enhanced security engine, mail integrations, CI/CD, and deployment remain deferred to their later milestones.
+
+### Milestone 1 implementation
+
+- `src/ml/data/pipeline.py` — structural preparation, normalization, fingerprints, deterministic split and integrity checks.
+- `configs/dataset.yaml` — authoritative source, schema, preprocessing, deduplication, split, and output configuration.
+- `scripts/run_dataset_pipeline.py` — reproducible pipeline runner.
+- `tests/test_dataset_pipeline.py` — dataset pipeline unit tests.
+- `docs/dataset.md` — dataset provenance, methodology, verified counts, fingerprints, and leakage policy.
+- `docs/milestone1-acceptance-report.md` — final acceptance audit.
+
+The authoritative dataset is **not** committed to GitHub. Raw and generated processed data remain ignored by `.gitignore`.
 
 ### Documentation
 
-- docs/current-state.md
-- docs/architecture.md
-- docs/implementation-plan.md
-- docs/threat-model.md
-- docs/ml-methodology.md
-- docs/mail-integrations.md
-- docs/deployment.md
-- docs/limitations.md
+- `docs/current-state.md`
+- `docs/architecture.md`
+- `docs/implementation-plan.md`
+- `docs/dataset.md`
+- `docs/milestone1-acceptance-report.md`
+- `docs/threat-model.md`
+- `docs/ml-methodology.md`
+- `docs/mail-integrations.md`
+- `docs/deployment.md`
+- `docs/limitations.md`
 
 ### Research integrity
 
-The supplied report contains conflicting dataset counts (900 emails versus 5,572 rows reduced to 5,169 unique records). This must be verified against the authoritative dataset in Milestone 1.
+The project does not reuse historical model metrics as reproduced results unless the exact dataset, preprocessing, split, parameters, and evaluation procedure are matched.
 
-Historical accuracy figures are not treated as reproduced results without independently matching the data, preprocessing, split, and implementation.
+Milestone 1 verified the authoritative dataset rather than relying on conflicting historical counts.
