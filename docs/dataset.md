@@ -116,7 +116,7 @@ The accepted split fingerprints are:
 | Validation | `fad1023e52f78f883e991febc4addbade88a60f2514b0aecdfe5b50684be6d46` |
 | Test | `2035a79e167f8ad10612bcb4dd7c0bbf22d0b7c980de734b37ae1b4ad2643c46` |
 
-The repository implementation uses a documented deterministic per-record fingerprint serializer in `src/ml/data/pipeline.py`. The accepted fingerprints above remain the audit reference. An exact fingerprint match should only be claimed after verifying the repository serializer against the accepted Colab artifact.
+The repository implementation now mirrors the accepted Colab per-record serializer: canonical JSON object, lexicographically sorted keys, UTF-8 encoding, and the original scalar/missing-value normalization rules. The accepted fingerprints above remain the audit reference. Real-data fingerprint and split re-verification must still be executed with the authoritative Parquet file before M1/M2 real-data acceptance is claimed.
 
 ## Leakage checks completed in Milestone 1
 
