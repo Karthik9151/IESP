@@ -2,6 +2,23 @@ name: Build IESP model release
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-model-release.yml"
+      - "scripts/run_dataset_pipeline.py"
+      - "scripts/run_phishing_model.py"
+      - "scripts/run_priority_model.py"
+      - "src/ml/**"
+      - "configs/dataset.yaml"
+      - "configs/phishing.yaml"
+      - "configs/priority.yaml"
+      - "requirements-ml.txt"
+      - "requirements-api.txt"
+
+concurrency:
+  group: iesp-model-release-v1
+  cancel-in-progress: true
 
 permissions:
   contents: write
