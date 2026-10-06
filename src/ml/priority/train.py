@@ -55,7 +55,7 @@ def save_priority_model(
 ) -> tuple[Path, Path]:
     artifact = Path(artifact_path)
     artifact.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, artifact)
+    joblib.dump(model, artifact, compress=3)
     metadata_path = artifact.with_name("metadata.json")
     payload = dict(metadata or {})
     payload.setdefault("artifact", artifact.name)
