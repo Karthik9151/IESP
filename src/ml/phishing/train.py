@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -55,12 +56,20 @@ def train_phishing_model(
     return model
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def save_phishing_model(
     model: Pipeline,
     artifact_path: str | Path,
     metadata: Mapping[str, Any] | None = None,
 ) -> tuple[Path, Path]:
-    """Persist the model and a small JSON metadata record."""
+    """Persist the model and an integrity-verifiable JSON metadata record."""
     artifact = Path(artifact_path)
     artifact.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, artifact)
@@ -68,6 +77,8 @@ def save_phishing_model(
     metadata_path = artifact.with_name("metadata.json")
     payload = dict(metadata or {})
     payload.setdefault("artifact", artifact.name)
+    payload.setdefault("artifact_size_bytes", artifact.stat().st_size)
+    payload.setdefault("artifact_sha256", _sha256_file(artifact))
     payload.setdefault("sklearn_version", sklearn.__version__)
     metadata_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
