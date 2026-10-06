@@ -130,7 +130,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         return ReadyResponse(status="ready", blockers=[])
 
     @app.post("/api/v1/analyze", response_model=AnalysisResponse)
-    async def analyze(request: Request, payload: EmailRequest, context: AuthorizationContext = Depends(require_api_key(settings))):
+    async def analyze(request: Request, payload: EmailRequest = Body(...), context: AuthorizationContext = Depends(require_api_key(settings))):
         authorize_analysis(context)
         started = time.perf_counter()
         result = service.analyze(_to_email(payload), request.state.request_id)
