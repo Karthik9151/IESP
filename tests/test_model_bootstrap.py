@@ -4,10 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts import bootstrap_models
 
 
-def _manifest_for(root: Path, phishing: bytes, priority: bytes) -> dict:
+def _manifest(phishing: bytes, priority: bytes) -> dict:
     def info(filename: str, payload: bytes) -> dict:
         return {
             "filename": filename,
@@ -40,7 +42,7 @@ def test_bootstrap_reuses_verified_existing_artifacts(tmp_path: Path) -> None:
     (root / "phishing" / "phishing_pipeline.joblib").write_bytes(phishing)
     (root / "priority" / "priority_pipeline.joblib").write_bytes(priority)
     (root / "model-manifest.json").write_text(
-        json.dumps(_manifest_for(root, phishing, priority)),
+        json.dumps(_manifest(phishing, priority)),
         encoding="utf-8",
     )
 
@@ -50,20 +52,9 @@ def test_bootstrap_reuses_verified_existing_artifacts(tmp_path: Path) -> None:
     assert (root / "priority" / "priority_pipeline.joblib").read_bytes() == priority
 
 
-def test_bootstrap_rejects_wrong_m1_contract(tmp_path: Path) -> None:
-    manifest = _manifest_for(tmp_path, b"p", b"q")
+def test_manifest_validation_rejects_wrong_m1_contract() -> None:
+    manifest = _manifest(b"p", b"q")
     manifest["m1_contract"]["test_records"] = 1
-    root = tmp_path / "models"
-    root.mkdir()
-    (root / "model-manifest.json").write_text(
-        json.dumps(manifest),
-        encoding="utf-8",
-    )
 
-    bootstrap_models.bootstrap
-    try:
-        bootstrap_models._load_or_fetch_manifest(root)
-    except RuntimeError as exc:
-        assert "M1 split-size mismatch" in str(exc)
-    else:
-        raise AssertionError("Expected an M1 contract validation failure")
+    with pytest.raises(RuntimeError, match="M1 split-size mismatch"):
+        bootstrap_models._validate_manifest(manifest, "models-v1")
