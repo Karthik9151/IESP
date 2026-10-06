@@ -90,3 +90,29 @@ Full M2 acceptance requires:
 6. Confirm artifact save/load reproduces predictions.
 
 No historical performance number is treated as a reproduced M2 result.
+
+
+## Milestone 3 — Priority baseline
+
+The priority baseline is separate from security classification and runs only after a NON-PHISHING decision.
+
+### Transparent proxy-label policy
+
+Priority labels are deterministic project/proxy labels rather than human annotations:
+- P1: highest urgency, score >= 4
+- P2: medium urgency, score 2–3
+- P3: lowest urgency, score 0–1
+
+Signals include deadline language, immediate-action language, critical/security-incident language, payment/financial urgency, explicit required actions, and time-sensitive expressions. The policy is implemented in src/ml/priority/labels.py.
+
+### Priority features
+
+The transformer produces VADER compound, positive, negative and neutral scores plus message length, word/sentence counts, uppercase ratio, exclamation/question counts, urgency/deadline/action counts, and numeric/time-expression indicators. Generation is deterministic and does not use the target label as a feature.
+
+### Classifier and evaluation
+
+Logistic Regression is configured in configs/priority.yaml. Validation is diagnostic and the final test split is held out. Evaluation reports accuracy, macro/weighted precision/recall/F1, a P1/P2/P3 confusion matrix and per-class metrics.
+
+### Limitation
+
+Metrics from this baseline measure agreement with the deterministic proxy policy, not human-priority accuracy or real-world urgency detection. Genuine human-annotated priority data is required for that claim.
