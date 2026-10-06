@@ -110,3 +110,17 @@ The authoritative MeAJOR Parquet file is not stored in the repository. The repos
 5. Historical performance claims are not considered reproduced results.
 
 Milestone 0 and Milestone 1 are complete. Milestone 2 is implemented on v0.3, with real-data acceptance pending because the authoritative Parquet is not available in this environment. See docs/milestone2-acceptance-report.md.
+
+
+## Post-M5 implementation update — 2026-10-06
+
+Active implementation branch: development. Historical M2 snapshot: v0.3. The v0.3 branch remains preserved.
+
+| Milestone | Implementation | Acceptance boundary |
+|---|---|---|
+| M2 Phishing ML | Implemented with deterministic second-train and artifact-reload gates | Real-data acceptance PENDING because the authoritative Parquet is unavailable here |
+| M3 Priority ML | Implemented with VADER, engineered urgency features, proxy labels, and Logistic Regression | Fixture/code verification implemented; real model execution requires the pinned VADER dependency |
+| M4 Security Engine | Implemented with safe parsing, URL/attachment analysis, fail-closed decisioning, explicit priority gating, and safe logging | Security regression tests implemented |
+| M5 FastAPI | Implemented with versioned analyze endpoint, health/readiness, strict schemas, API-key auth, authorization, safe errors, request IDs, restrictive CORS, and repository abstraction | API regression tests implemented |
+
+Security classification always precedes priority classification. Priority is requested only after an explicit NON-PHISHING decision. Raw email bodies, attachments, URLs and secrets are not exposed through logs or API responses by default.
