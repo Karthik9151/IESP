@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+# Make the repository root importable when the file is executed directly.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 import pandas as pd
 import yaml
@@ -17,6 +23,7 @@ from src.ml.data.pipeline import (
     summarize,
     validate_split_integrity,
     validate_schema,
+    write_outputs,
 )
 
 
@@ -91,7 +98,6 @@ def main() -> None:
     raw_df = pd.read_parquet(source_path)
 
     validate_schema(raw_df)
-
     final_df, preparation_summary = prepare_dataset(raw_df)
 
     split_cfg = dataset_cfg["split"]
