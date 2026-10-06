@@ -1,1 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
+# Environment/secrets
+.env
+.env.*
+!.env.example
+
+# Local/generated data and model artifacts
+data/raw/*
+data/processed/*
+models/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!models/.gitkeep
+
+# Frontend
+node_modules/
+dist/
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log

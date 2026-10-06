@@ -3,69 +3,107 @@
 **Audit date:** 2026-10-06  
 **Repository:** Karthik9151/IESP  
 **Default branch:** main  
-**Branches:** `main`, `milestone-0-architecture`
+**Development branch:** milestone-0-architecture
 
-## Existing files
+## Repository inventory
 
-The audited repository currently contains:
+The current main branch contains the following foundation:
 
-```text
 .
 ├── README.md
-├── app              # empty file; not an application directory
 ├── .env.example
 ├── .gitignore
-└── docs/
-    ├── architecture.md
-    ├── current-state.md
-    ├── deployment.md
-    ├── limitations.md
-    ├── mail-integrations.md
-    ├── ml-methodology.md
-    ├── implementation-plan.md
-    └── threat-model.md
-```
+├── .github/
+│   └── workflows/
+│       └── .gitkeep
+├── app/
+│   └── .gitkeep
+├── data/
+│   └── .gitkeep
+├── docs/
+│   ├── architecture.md
+│   ├── current-state.md
+│   ├── deployment.md
+│   ├── implementation-plan.md
+│   ├── limitations.md
+│   ├── mail-integrations.md
+│   ├── ml-methodology.md
+│   └── threat-model.md
+├── frontend/
+│   └── .gitkeep
+├── models/
+│   └── .gitkeep
+├── notebooks/
+│   └── .gitkeep
+├── scripts/
+│   └── .gitkeep
+└── tests/
+    └── .gitkeep
 
 ## Existing functionality
 
-`README.md` contains only:
-
-> IESP  
-> Intelligent Email Security & Prioritization
-
-No application implementation was found.
-
-## Audit findings
+No application implementation is currently present.
 
 | Area | Current state |
 |---|---|
-| Python/FastAPI backend | Not implemented |
+| FastAPI backend | Not implemented |
 | React/Vite frontend | Not implemented |
-| ML/NLP code | Not implemented |
-| Security engine | Not implemented |
-| Mail integrations | Not implemented |
-| Dataset files | None found |
-| Model artifacts | None found |
-| Dependency manifests | None found |
-| Tests | None found |
-| GitHub Actions | None found |
-| Docker | Not implemented |
+| NLP/ML training | Not implemented |
+| Phishing SVM | Not implemented |
+| Priority Logistic Regression | Not implemented |
+| Enhanced security engine | Not implemented |
+| Gmail integration | Not implemented |
+| Microsoft Graph integration | Not implemented |
+| Generic IMAP integration | Not implemented |
 | Database | Not implemented |
-| Secrets/configuration | Empty `.env.example`; no application secrets found |
-| `app` entry | Empty file; no source code |
+| Docker | Not implemented |
+| GitHub Actions CI | Placeholder only |
+| Automated tests | Placeholder only |
+| Authoritative dataset | Not present in repository |
+| Model artifacts | Not present |
 
-The existing files under `docs/` are documentation placeholders. They are retained and populated as part of Milestone 0; useful existing work is not deleted.
+## Existing documentation
 
-## Assumptions
+The architecture, implementation plan, threat model, ML methodology, mail integration plan, deployment plan, and limitations documents provide the intended Milestone 0 design and later execution contract.
 
-1. The repository is a clean project foundation.
-2. The supplied MASTER BUILD PROMPT is the authoritative specification.
-3. No dataset is assumed to be available until its actual source is supplied and verified.
-4. The conflicting dataset counts (900 versus 5,572 rows / 5,169 unique records) are unresolved.
-5. No model performance or security effectiveness is claimed at this stage.
+## Important audit findings
 
-## Missing work
+### 1. Dataset ambiguity
 
-The project still requires the complete Milestones 1–10 implementation described in `docs/implementation-plan.md`.
+The project specification contains conflicting dataset descriptions:
 
-Milestone 0 intentionally does not implement ML, backend, frontend, mail integrations, Docker, CI/CD, or deployment.
+- 900 emails in one section.
+- 5,572 rows reduced to 5,169 unique records in another.
+
+No dataset count is assumed to be correct. Milestone 1 must identify the authoritative source and measure the actual rows, duplicates, labels, and provenance.
+
+### 2. Research integrity
+
+The historical model metrics in the supplied report are not automatically reproduced results.
+
+A metric can only be reported as reproduced when the exact dataset, labels, preprocessing, split, parameters, and evaluation procedure are verified.
+
+### 3. Security ordering
+
+The architecture requires:
+
+Security analysis -> security decision -> priority classification only for eligible non-phishing messages.
+
+### 4. Untrusted email data
+
+Email body text, HTML, URLs, headers, and attachment metadata must be treated as untrusted input. They must never become application instructions.
+
+## Milestone 0 acceptance status
+
+- [x] Repository audited
+- [x] Current state documented
+- [x] Architecture documented
+- [x] Milestone plan documented
+- [x] Threat model documented
+- [x] ML methodology documented
+- [x] Mail integration architecture documented
+- [x] Deployment/limitations documented
+- [x] Dataset inconsistency documented
+- [x] No ML/backend/frontend/mail implementation started
+
+Milestone 1 is intentionally blocked until explicitly authorized after review.
