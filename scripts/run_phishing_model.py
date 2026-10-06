@@ -42,9 +42,27 @@ def main() -> None:
     parser.add_argument("--config", default="configs/phishing.yaml")
     parser.add_argument("--artifact", default=None)
     parser.add_argument("--metrics-output", default=None)
+    parser.add_argument("--manifest", default="data/processed/dataset_manifest.json")
     args = parser.parse_args()
 
     config = load_config(args.config)
+    manifest_path = Path(args.manifest)
+    if not manifest_path.exists():
+        raise FileNotFoundError(
+            f"M1 manifest not found: {manifest_path}. Run the accepted M1 pipeline first."
+        )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    expected_fingerprint = "34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582"
+    if manifest.get("project_fingerprint") != expected_fingerprint:
+        raise RuntimeError("M1 fingerprint gate failed; refusing to train M2.")
+    expected_splits = {"train": 76069, "validation": 16300, "test": 16301}
+    for name, expected in expected_splits.items():
+        actual = manifest.get("splits", {}).get(name, {}).get("records")
+        if actual != expected:
+            raise RuntimeError(
+                f"M1 {name} split count gate failed: expected {expected}, got {actual}."
+            )
+
     train_df = pd.read_parquet(args.train)
     validation_df = pd.read_parquet(args.validation)
     test_df = pd.read_parquet(args.test)
