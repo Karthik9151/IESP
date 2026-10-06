@@ -224,7 +224,7 @@ def split_dataset(
         frame,
         test_size=(validation_ratio + test_ratio),
         random_state=random_state,
-        stratify=frame[stratify_column],
+        stratify=(frame[stratify_column] if frame[stratify_column].value_counts().min() >= 2 else None),
     )
 
     validation_fraction_of_temp = validation_ratio / (validation_ratio + test_ratio)
@@ -232,7 +232,7 @@ def split_dataset(
         temp_df,
         test_size=(1.0 - validation_fraction_of_temp),
         random_state=random_state,
-        stratify=temp_df[stratify_column],
+        stratify=(temp_df[stratify_column] if temp_df[stratify_column].value_counts().min() >= 2 else None),
     )
 
     return train_df.copy(), validation_df.copy(), test_df.copy()
