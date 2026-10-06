@@ -77,30 +77,27 @@ def normalize_text(value: Any) -> str:
 
 
 def _canonical_value(value: Any) -> Any:
-    """Convert common pandas/numpy values to stable JSON-compatible values."""
+    """Match the accepted Milestone 1 Colab canonicalization exactly.
+
+    The accepted M1 fingerprint was produced from a canonical JSON object
+    containing every original MeAJOR column, with keys sorted lexicographically.
+    Scalar values are normalized using the original Colab rules before JSON
+    serialization. Derived columns are intentionally excluded.
+    """
     if value is None:
         return None
 
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+
+    if isinstance(value, np.generic):
+        return _canonical_value(value.item())
+
     if isinstance(value, (pd.Timestamp, datetime, date)):
         return value.isoformat()
-
-    if isinstance(value, (np.integer,)):
-        return int(value)
-
-    if isinstance(value, (np.floating,)):
-        value = float(value)
-        if math.isnan(value):
-            return None
-        return value
-
-    if isinstance(value, (np.bool_,)):
-        return bool(value)
-
-    if isinstance(value, float) and math.isnan(value):
-        return None
-
-    if isinstance(value, (list, tuple)):
-        return [_canonical_value(item) for item in value]
 
     if isinstance(value, dict):
         return {
@@ -108,19 +105,31 @@ def _canonical_value(value: Any) -> Any:
             for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
         }
 
-    return value if isinstance(value, (str, int, float, bool)) else str(value)
+    if isinstance(value, (list, tuple, np.ndarray, set)):
+        return [
+            _canonical_value(item)
+            for item in list(value)
+        ]
+
+    return str(value)
 
 
 def row_fingerprint(row: pd.Series, columns: list[str] | None = None) -> str:
-    """Return a deterministic SHA-256 fingerprint for one complete record."""
+    """Return the accepted M1 SHA-256 fingerprint for one complete record."""
     columns = columns or ORIGINAL_COLUMNS
-    payload = [_canonical_value(row[column]) for column in columns]
-    encoded = json.dumps(
-        payload,
+    record = {
+        column: _canonical_value(row[column])
+        for column in columns
+    }
+    canonical_json = json.dumps(
+        record,
         ensure_ascii=False,
+        sort_keys=True,
         separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    )
+    return hashlib.sha256(
+        canonical_json.encode("utf-8")
+    ).hexdigest()
 
 
 def project_fingerprint(frame: pd.DataFrame) -> str:
@@ -176,9 +185,10 @@ def prepare_dataset(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
     missing_body = int(working["body"].isna().sum())
 
     working = working.dropna(subset=["label", "body"]).copy()
-    working["label"] = working["label"].astype(int)
     validate_labels(working)
 
+    # Fingerprint before any type coercion so source values retain the exact
+    # representation used by the accepted Colab audit (for example 0.0/1.0).
     working["record_fingerprint"] = working.apply(
         row_fingerprint,
         axis=1,
@@ -191,6 +201,9 @@ def prepare_dataset(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
         keep="first",
     ).copy()
     duplicate_copies = before_dedup - len(working)
+
+    # Model-facing labels are normalized after fingerprinting/deduplication.
+    working["label"] = working["label"].astype(int)
 
     working["text_raw"] = working["body"].astype(str)
     working["text_normalized"] = working["text_raw"].map(normalize_text)
