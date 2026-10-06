@@ -1,13 +1,13 @@
 # Current Repository State
 
-**Audit date:** 2026-10-06  
+**Audit date:** 2026-10-07  
 **Repository:** Karthik9151/IESP  
 **Default branch:** main  
-**Milestone status:** Milestone 2 code implemented; real-data acceptance pending
+**Milestone status:** M0–M5 implementation consolidated; M2 real-data acceptance pending
 
 ## Repository inventory
 
-The repository now contains the Milestone 0 foundation plus the Milestone 1 dataset pipeline:
+The repository contains the project foundation plus the implemented M1–M5 layers. The M2 authoritative dataset run remains an external acceptance step.
 
 .
 ├── README.md
@@ -65,11 +65,11 @@ The repository now contains the Milestone 0 foundation plus the Milestone 1 data
 | Stratified train/validation/test split | Implemented |
 | Split leakage/integrity checks | Implemented |
 | Dataset manifest generation | Implemented |
-| FastAPI backend | Not implemented |
+| FastAPI backend | Implemented (M5) |
 | React/Vite frontend | Not implemented |
 | Phishing SVM | Implemented on v0.3; real-data acceptance pending |
-| Priority Logistic Regression | Not implemented |
-| Enhanced security engine | Not implemented |
+| Priority Logistic Regression | Implemented (M3) |
+| Enhanced security engine | Implemented (M4) |
 | Gmail integration | Not implemented |
 | Microsoft Graph integration | Not implemented |
 | Generic IMAP integration | Not implemented |
@@ -109,16 +109,14 @@ The authoritative MeAJOR Parquet file is not stored in the repository. The repos
 4. Model preprocessing belongs after the split and must be fitted only on training data.
 5. Historical performance claims are not considered reproduced results.
 
-Milestone 0 and Milestone 1 are complete. Milestone 2 is implemented on v0.3, with real-data acceptance pending because the authoritative Parquet is not available in this environment. See docs/milestone2-acceptance-report.md.
+Milestones M0–M5 are implemented in the consolidated development state. M2 real-data acceptance remains pending because the authoritative Parquet is not available in this environment. M3 uses deterministic proxy priority labels; M4 security controls are regression-tested; M5 exposes the versioned FastAPI application layer.
 
 
 ## Post-M5 implementation update — 2026-10-06
 
-Active implementation branch: development. Historical M2 snapshot: v0.3. The v0.3 branch remains preserved.
-
 | Milestone | Implementation | Acceptance boundary |
 |---|---|---|
-| M2 Phishing ML | Implemented with deterministic second-train and artifact-reload gates | Real-data acceptance PENDING because the authoritative Parquet is unavailable here |
+| M2 Phishing ML | Implemented with TF-IDF + LinearSVC, runtime feature-state audit, deterministic retraining, and artifact integrity checks | Real-data acceptance PENDING because the authoritative Parquet is unavailable here |
 | M3 Priority ML | Implemented with VADER, engineered urgency features, proxy labels, and Logistic Regression | Fixture/code verification implemented; real model execution requires the pinned VADER dependency |
 | M4 Security Engine | Implemented with safe parsing, URL/attachment analysis, fail-closed decisioning, explicit priority gating, and safe logging | Security regression tests implemented |
 | M5 FastAPI | Implemented with versioned analyze endpoint, health/readiness, strict schemas, API-key auth, authorization, safe errors, request IDs, restrictive CORS, and repository abstraction | API regression tests implemented |
