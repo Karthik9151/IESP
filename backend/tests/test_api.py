@@ -138,3 +138,10 @@ def test_safe_internal_error_does_not_leak_details():
     response = broken.post("/api/v1/analyze", json=BODY, headers={"X-API-Key": key})
     assert response.status_code == 500
     assert "/secret/internal/path" not in response.text
+
+
+def test_ready_reports_model_blockers_when_artifacts_unavailable():
+    client, _ = make_client()
+    response = client.get("/ready")
+    assert response.status_code == 503
+    assert "phishing_model_unavailable" in response.json()["blockers"]
