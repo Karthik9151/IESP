@@ -1,5 +1,7 @@
+import hashlib
 import json
 
+import joblib
 import numpy as np
 import pandas as pd
 
@@ -35,16 +37,19 @@ def test_save_phishing_model_records_artifact_hash(tmp_path):
     )
 
     payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+
     assert artifact_path.exists()
     assert payload["artifact"] == artifact.name
-    assert payload["artifact_sha256"]
+    assert payload["artifact_sha256"] == digest
     assert payload["artifact_size_bytes"] == artifact.stat().st_size
 
+    loaded = joblib.load(artifact_path)
     assert np.array_equal(
         predict_labels(model, frame["text_normalized"]),
-        predict_labels(model, frame["text_normalized"]),
+        predict_labels(loaded, frame["text_normalized"]),
     )
     assert np.allclose(
         predict_scores(model, frame["text_normalized"]),
-        predict_scores(model, frame["text_normalized"]),
+        predict_scores(loaded, frame["text_normalized"]),
     )
