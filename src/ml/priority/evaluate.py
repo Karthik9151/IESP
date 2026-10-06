@@ -28,18 +28,17 @@ def evaluate_priority_predictions(
     matrix = confusion_matrix(true, pred, labels=list(LABELS))
     per_class = {}
     for label in LABELS:
+        true_binary = true == label
+        pred_binary = pred == label
         per_class[label] = {
             "precision": float(
-                precision_score(true, pred, labels=[label], average="binary",
-                                pos_label=label, zero_division=0)
+                precision_score(true_binary, pred_binary, average="binary", zero_division=0)
             ),
             "recall": float(
-                recall_score(true, pred, labels=[label], average="binary",
-                              pos_label=label, zero_division=0)
+                recall_score(true_binary, pred_binary, average="binary", zero_division=0)
             ),
             "f1": float(
-                f1_score(true, pred, labels=[label], average="binary",
-                         pos_label=label, zero_division=0)
+                f1_score(true_binary, pred_binary, average="binary", zero_division=0)
             ),
             "support": int(np.sum(true == label)),
         }
