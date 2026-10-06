@@ -1,0 +1,69 @@
+dataset:
+  name: MeAJOR
+  description: "Merged email Assets from Joint Open-source Repositories"
+  source:
+    zenodo_record: "18471483"
+    doi: "10.5281/zenodo.18471483"
+    url: "https://zenodo.org/records/18471483"
+    filename: "meajor_cleaned_preprocessed.parquet.gzip"
+
+  columns:
+    label: "label"
+    text: "body"
+    source: "source"
+    required_original:
+      - sender
+      - sender_domain
+      - receiver
+      - receiver_domain
+      - date
+      - subject
+      - content_types
+      - body
+      - urls
+      - url_count
+      - url_length_max
+      - url_length_avg
+      - url_subdom_max
+      - url_subdom_avg
+      - attachment_count
+      - has_attachments
+      - attachment_types
+      - language
+      - source
+      - label
+
+  labels:
+    benign: 0
+    phishing: 1
+
+  preprocessing:
+    unicode_normalization: "NFC"
+    normalize_line_endings: true
+    tabs_to_spaces: true
+    collapse_horizontal_whitespace: true
+    collapse_excess_blank_lines: true
+    strip_line_boundary_whitespace: true
+    strip_outer_whitespace: true
+    preserve_raw_text: true
+
+  deduplication:
+    method: "exact full-record"
+    basis: "all original dataset columns before text normalization"
+    keep: "first"
+    exclude_body_and_subject_only_dedup: true
+
+  split:
+    train_ratio: 0.70
+    validation_ratio: 0.15
+    test_ratio: 0.15
+    random_state: 42
+    stratify: "label"
+
+  output:
+    directory: "data/processed"
+    full_dataset: "meajor_ml.parquet"
+    train: "train.parquet"
+    validation: "validation.parquet"
+    test: "test.parquet"
+    manifest: "dataset_manifest.json"
