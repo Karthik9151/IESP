@@ -121,9 +121,19 @@ def test_evaluation_fields_and_confusion_matrix():
         [-1.0, 0.2, 0.8, 1.2],
     )
     expected = {
-        "accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc",
-        "confusion_matrix", "tn", "fp", "fn", "tp",
-        "positive_class", "score_semantics",
+        "accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "roc_auc",
+        "pr_auc",
+        "confusion_matrix",
+        "tn",
+        "fp",
+        "fn",
+        "tp",
+        "positive_class",
+        "score_semantics",
     }
     assert expected.issubset(metrics)
     assert metrics["confusion_matrix"] == [[1, 1], [0, 2]]
@@ -135,3 +145,9 @@ def test_pipeline_exposes_tfidf_and_svm():
     pipeline = build_phishing_pipeline(config())
     assert pipeline.named_steps["tfidf"].__class__.__name__ == "TfidfVectorizer"
     assert pipeline.named_steps["svm"].__class__.__name__ == "LinearSVC"
+
+
+def test_fractional_labels_are_rejected():
+    frame = pd.DataFrame({"text_normalized": ["a", "b"], "label": [0.5, 1]})
+    with pytest.raises(ValueError):
+        train_phishing_model(frame, config())
