@@ -1,0 +1,158 @@
+name: Build IESP model release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  train-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ML dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-ml.txt -r requirements-api.txt
+
+      - name: Download authoritative MeAJOR dataset
+        run: |
+          curl --fail --location --retry 4 --retry-all-errors \
+            "https://zenodo.org/records/18471483/files/meajor_cleaned_preprocessed.parquet.gzip?download=1" \
+            --output meajor_cleaned_preprocessed.parquet.gzip
+
+      - name: Verify source dataset checksum
+        run: |
+          test "$(md5sum meajor_cleaned_preprocessed.parquet.gzip | cut -d' ' -f1)" = "78e397ad8447bcdba5a98097921ba8bd"
+
+      - name: Run accepted M1 dataset pipeline
+        run: |
+          python scripts/run_dataset_pipeline.py \
+            --input meajor_cleaned_preprocessed.parquet.gzip \
+            --output-dir data/processed
+
+      - name: Train and validate phishing model
+        run: |
+          python scripts/run_phishing_model.py \
+            --train data/processed/train.parquet \
+            --validation data/processed/validation.parquet \
+            --test data/processed/test.parquet \
+            --artifact models/phishing/phishing_pipeline.joblib \
+            --metrics-output models/phishing/phishing_metrics.json \
+            --manifest data/processed/dataset_manifest.json
+
+      - name: Train and validate priority model
+        run: |
+          python scripts/run_priority_model.py \
+            --train data/processed/train.parquet \
+            --validation data/processed/validation.parquet \
+            --test data/processed/test.parquet \
+            --artifact models/priority/priority_pipeline.joblib \
+            --metrics-output models/priority/priority_metrics.json
+
+      - name: Build model release manifest
+        env:
+          RELEASE_TAG: models-v1
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          def sha256(path: str) -> str:
+              h = hashlib.sha256()
+              with open(path, "rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          dataset_manifest = json.loads(
+              Path("data/processed/dataset_manifest.json").read_text(encoding="utf-8")
+          )
+
+          models = {}
+          for name, path in {
+              "phishing": "models/phishing/phishing_pipeline.joblib",
+              "priority": "models/priority/priority_pipeline.joblib",
+          }.items():
+              p = Path(path)
+              models[name] = {
+                  "filename": p.name,
+                  "size_bytes": p.stat().st_size,
+                  "sha256": sha256(path),
+              }
+
+          payload = {
+              "project": "IESP",
+              "release_tag": os.environ["RELEASE_TAG"],
+              "source_dataset": {
+                  "name": "MeAJOR",
+                  "zenodo_record": "18471483",
+                  "filename": "meajor_cleaned_preprocessed.parquet.gzip",
+                  "md5": "78e397ad8447bcdba5a98097921ba8bd",
+              },
+              "m1_contract": {
+                  "project_fingerprint": dataset_manifest["project_fingerprint"],
+                  "train_records": dataset_manifest["splits"]["train"]["records"],
+                  "validation_records": dataset_manifest["splits"]["validation"]["records"],
+                  "test_records": dataset_manifest["splits"]["test"]["records"],
+              },
+              "models": models,
+          }
+
+          expected = "34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582"
+          if payload["m1_contract"]["project_fingerprint"] != expected:
+              raise SystemExit("Refusing to publish: M1 fingerprint mismatch")
+
+          if (payload["m1_contract"]["train_records"],
+              payload["m1_contract"]["validation_records"],
+              payload["m1_contract"]["test_records"]) != (76069, 16300, 16301):
+              raise SystemExit("Refusing to publish: M1 split-size mismatch")
+
+          Path("models/model-manifest.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Check artifact sizes
+        run: |
+          set -e
+          for f in models/phishing/phishing_pipeline.joblib models/priority/priority_pipeline.joblib; do
+            size=$(stat -c%s "$f")
+            echo "$f: $size bytes"
+            if [ "$size" -ge 100000000 ]; then
+              echo "Model exceeds GitHub release safety threshold of 100 MB: $f"
+              exit 1
+            fi
+          done
+
+      - name: Publish model release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: models-v1
+        run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" \
+              --title "IESP model artifacts v1" \
+              --notes "Generated from the accepted MeAJOR M1 contract. Dataset stays outside GitHub; only trained runtime artifacts and verification manifest are published."
+
+          gh release upload "$RELEASE_TAG" \
+            models/phishing/phishing_pipeline.joblib \
+            models/phishing/metadata.json \
+            models/phishing/phishing_metrics.json \
+            models/priority/priority_pipeline.joblib \
+            models/priority/metadata.json \
+            models/priority/priority_metrics.json \
+            models/model-manifest.json \
+            --clobber
