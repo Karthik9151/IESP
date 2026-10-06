@@ -31,8 +31,7 @@ vocabulary and IDF statistics cannot use validation or test text.
 Validation and test data are transformed by the already-fitted pipeline.
 No TF-IDF fitting occurs on those splits.
 
-Unit tests verify that transforming validation text does not change the
-fitted vocabulary.
+The full acceptance runner records the fitted vocabulary size and feature matrix shapes and verifies that validation/test transformation leaves vocabulary and IDF state unchanged. Unit tests additionally verify deterministic behavior and artifact reload.
 
 ### Evaluation
 
@@ -116,3 +115,16 @@ Logistic Regression is configured in configs/priority.yaml. Validation is diagno
 ### Limitation
 
 Metrics from this baseline measure agreement with the deterministic proxy policy, not human-priority accuracy or real-world urgency detection. Genuine human-annotated priority data is required for that claim.
+
+
+## Milestone 4 — Security engine
+
+M4 implements provider-neutral security analysis around untrusted email input: safe MIME/header parsing, structural URL analysis without network requests, metadata-only attachment policy, configurable fail-closed security decisions, explicit priority eligibility, and secret-safe logging. Security classification precedes priority classification.
+
+## Milestone 5 — FastAPI application layer
+
+M5 implements the versioned `/api/v1/analyze` endpoint plus `/health` and `/ready`, strict Pydantic request/response validation, environment-provided API-key authentication and authorization boundaries, request IDs, restrictive CORS, safe error handling, and a persistence abstraction. Mail-provider integrations, frontend UI, deployment, and production serving remain future work.
+
+## Consolidated milestone policy
+
+M0–M5 are project milestones. Git branches such as `development`, `v0.2`, and `v0.3` are development history and must not be treated as milestone names or project versions.
