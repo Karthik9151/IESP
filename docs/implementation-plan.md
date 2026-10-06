@@ -253,3 +253,16 @@ Deployment
 The academic ML baselines remain separately measurable from the enhanced security engine.
 
 Milestone 2 may begin only after the Milestone 1 repository implementation has been locally verified against the authoritative dataset.
+
+
+## Actual implementation status — 2026-10-06
+
+M2: IMPLEMENTED; real-data acceptance PENDING until the accepted MeAJOR dataset is available for fingerprint and held-out validation.
+
+M3: IMPLEMENTED. Priority uses VADER + transparent engineered features + Logistic Regression with deterministic proxy/project labels P1/P2/P3. Proxy labels are not human annotations.
+
+M4: IMPLEMENTED. Safe MIME/header parsing, URL structural analysis, metadata-only attachment analysis, configurable security decision matrix, REVIEW REQUIRED fail-safe path, explicit priority gating and safe logging are present.
+
+M5: IMPLEMENTED. FastAPI provides /api/v1/analyze, /health and /ready with strict Pydantic schemas, environment-provided API-key authentication, authorization boundary, request IDs, restrictive CORS, safe errors and persistence abstraction.
+
+M6–M10 remain future milestones.
