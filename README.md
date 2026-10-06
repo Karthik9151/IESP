@@ -14,38 +14,37 @@ Security evaluation always happens before priority classification.
 
 **Milestone 1 — Dataset + ML pipeline foundation: COMPLETE**
 
-The authoritative MeAJOR dataset was verified in Google Colab, structurally prepared, exactly deduplicated, validated, split with stratification, checked for cross-split exact leakage, and documented. The repository now contains the reproducible dataset pipeline implementation.
+The authoritative MeAJOR dataset was verified, structurally prepared, exactly
+deduplicated, validated, split with stratification, checked for cross-split
+exact leakage, and documented.
 
-**Milestone 2 — Phishing ML:** not started.
+**Milestone 2 — Phishing ML: IMPLEMENTED; REAL-DATA ACCEPTANCE PENDING**
 
-Backend, frontend, enhanced security engine, mail integrations, CI/CD, and deployment remain deferred to their later milestones.
+Branch v0.3 contains a leakage-safe TF-IDF + LinearSVC phishing baseline,
+prediction/evaluation utilities, tests, configuration, and a real-data runner.
+The authoritative Parquet is not committed to GitHub, so final performance
+metrics must be produced in a controlled local/Colab environment.
 
-### Milestone 1 implementation
+Backend, frontend, enhanced security engine, mail integrations, CI/CD, and deployment remain deferred.
 
-- `src/ml/data/pipeline.py` — structural preparation, normalization, fingerprints, deterministic split and integrity checks.
-- `configs/dataset.yaml` — authoritative source, schema, preprocessing, deduplication, split, and output configuration.
-- `scripts/run_dataset_pipeline.py` — reproducible pipeline runner.
-- `tests/test_dataset_pipeline.py` — dataset pipeline unit tests.
-- `docs/dataset.md` — dataset provenance, methodology, verified counts, fingerprints, and leakage policy.
-- `docs/milestone1-acceptance-report.md` — final acceptance audit.
+### Milestone 2 implementation
 
-The authoritative dataset is **not** committed to GitHub. Raw and generated processed data remain ignored by `.gitignore`.
+- src/ml/phishing/features.py — TF-IDF construction and schema validation.
+- src/ml/phishing/train.py — TF-IDF + LinearSVC training and artifact persistence.
+- src/ml/phishing/predict.py — labels and raw SVM decision scores.
+- src/ml/phishing/evaluate.py — required classification metrics and confusion matrix.
+- configs/phishing.yaml — reproducible feature/model/evaluation configuration.
+- scripts/run_phishing_model.py — trains on M1 train and evaluates validation/test.
+- tests/test_phishing_model.py — leakage, dimensions, determinism, persistence and evaluation tests.
+- docs/ml-methodology.md — methodology and score semantics.
+- docs/milestone2-acceptance-report.md — acceptance boundary and required evidence.
 
-### Documentation
+The LinearSVC decision_function output is a ranking margin, **not a probability**.
 
-- `docs/current-state.md`
-- `docs/architecture.md`
-- `docs/implementation-plan.md`
-- `docs/dataset.md`
-- `docs/milestone1-acceptance-report.md`
-- `docs/threat-model.md`
-- `docs/ml-methodology.md`
-- `docs/mail-integrations.md`
-- `docs/deployment.md`
-- `docs/limitations.md`
+The authoritative dataset and generated model artifacts are not committed to GitHub.
 
 ### Research integrity
 
-The project does not reuse historical model metrics as reproduced results unless the exact dataset, preprocessing, split, parameters, and evaluation procedure are matched.
-
-Milestone 1 verified the authoritative dataset rather than relying on conflicting historical counts.
+The project does not reuse historical model metrics as reproduced results
+unless the exact dataset, preprocessing, split, parameters, and evaluation
+procedure are matched.
