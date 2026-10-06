@@ -20,16 +20,16 @@
 | Microsoft Graph adapter | IMPLEMENTED | Read-only retrieval and attachment metadata |
 | OAuth helpers | IMPLEMENTED | State validation and PKCE helper; token storage remains external |
 | Testing | IMPLEMENTED / PARTIALLY VERIFIED | Unit/integration/security suites plus CI automation |
-| Docker | IMPLEMENTED | Model-aware backend image plus frontend image and Compose |
+| Docker | IMPLEMENTED | Model-aware backend image; model release is bootstrapped at container startup; frontend image and Compose |
 | CI/CD | IMPLEMENTED | Test, compile, dependency-audit and secret-scan jobs |
-| Model release automation | IMPLEMENTED | Manual workflow trains from MeAJOR and publishes verified runtime artifacts |
+| Model release automation | IMPLEMENTED | Manual workflow plus automatic runs on relevant ML/M1 changes; publishes verified runtime artifacts |
 | External deployment | PENDING | Render rebuild still needs observed success with published models |
 | Live provider OAuth validation | PENDING | Requires user-owned provider app credentials and consent |
 
 ## Genuine blockers
 
-1. The live Render instance currently reports `phishing_model_unavailable` and `priority_model_unavailable` because its image was built before runtime model artifacts were available.
-2. Model generation must be executed by the GitHub Actions model-release workflow before Render can become ready.
+1. The live Render instance must be rebuilt/restarted after `models-v1` is published so the startup bootstrap can obtain the verified runtime artifacts.
+2. The model-release workflow must complete successfully before Render can become ready.
 3. Live Gmail/Outlook OAuth requires external application registration and user consent.
 
 ## Security invariants

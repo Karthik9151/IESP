@@ -7,8 +7,10 @@ services:
       IESP_API_KEY: ${IESP_API_KEY:-change-me}
       IESP_ALLOWED_ORIGINS: ${IESP_ALLOWED_ORIGINS:-http://localhost:8080,http://localhost:5173}
       IESP_DATABASE_PATH: /app/data/iesp.sqlite3
+      IESP_MODEL_OWNER: ${IESP_MODEL_OWNER:-Karthik9151}
+      IESP_MODEL_REPO: ${IESP_MODEL_REPO:-IESP}
+      IESP_MODEL_RELEASE_TAG: ${IESP_MODEL_RELEASE_TAG:-models-v1}
     volumes:
-      - ./models:/app/models:ro
       - ./data:/app/data
     ports:
       - "8000:8000"
