@@ -30,16 +30,13 @@ def evaluate_priority_predictions(
     for label in LABELS:
         per_class[label] = {
             "precision": float(
-                precision_score(true, pred, labels=[label], average="binary",
-                                pos_label=label, zero_division=0)
+                precision_score(true == label, pred == label, average="binary", zero_division=0)
             ),
             "recall": float(
-                recall_score(true, pred, labels=[label], average="binary",
-                              pos_label=label, zero_division=0)
+                recall_score(true == label, pred == label, average="binary", zero_division=0)
             ),
             "f1": float(
-                f1_score(true, pred, labels=[label], average="binary",
-                         pos_label=label, zero_division=0)
+                f1_score(true == label, pred == label, average="binary", zero_division=0)
             ),
             "support": int(np.sum(true == label)),
         }
