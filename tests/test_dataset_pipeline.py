@@ -5,6 +5,7 @@ from src.ml.data.pipeline import (
     normalize_text,
     prepare_dataset,
     project_fingerprint,
+    row_fingerprint,
     split_dataset,
     split_fingerprint,
     validate_split_integrity,
@@ -38,6 +39,17 @@ def make_row(label: int, body: str, subject: str = "Subject") -> dict:
         }
     )
     return row
+
+
+def test_record_fingerprint_matches_m1_colab_canonicalization():
+    frame = pd.DataFrame([make_row(0, "benign")])
+    row = frame.iloc[0]
+
+    # This expected value is the deterministic SHA-256 of the accepted
+    # Milestone 1 canonical JSON-object serialization for this fixture.
+    assert row_fingerprint(row) == (
+        "f07e1c736fa31b007a48624725c717a6c2d642801702a7da321848f298cf1a2e"
+    )
 
 
 def test_normalize_text_preserves_security_tokens():
