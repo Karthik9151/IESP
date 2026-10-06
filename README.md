@@ -48,3 +48,14 @@ The authoritative dataset and generated model artifacts are not committed to Git
 The project does not reuse historical model metrics as reproduced results
 unless the exact dataset, preprocessing, split, parameters, and evaluation
 procedure are matched.
+
+
+### Milestone 3–5 implementation
+
+Milestone 3 adds the VADER + engineered-feature + Logistic Regression priority baseline with deterministic P1/P2/P3 proxy labels. These labels are project/proxy labels, not human urgency annotations.
+
+Milestone 4 adds provider-neutral domain models, safe MIME/header parsing, structural URL analysis without network requests, metadata-only attachment policy, configurable fail-closed security decisions, explicit priority eligibility, and secret-safe logging.
+
+Milestone 5 adds the versioned FastAPI API at /api/v1/analyze, public /health, readiness /ready, strict Pydantic validation, environment-provided API-key authentication, an authorization boundary, request IDs, restrictive CORS, safe errors, and a persistence abstraction.
+
+Security invariant: Untrusted email -> safe parsing -> security analysis -> security decision -> priority only for eligible NON-PHISHING email -> P1/P2/P3.
