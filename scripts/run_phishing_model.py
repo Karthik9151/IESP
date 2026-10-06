@@ -68,8 +68,12 @@ def main() -> None:
             f"M1 manifest not found: {manifest_path}. Run the accepted M1 pipeline first."
         )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("project_fingerprint") != EXPECTED_M1_FINGERPRINT:
-        raise RuntimeError("M1 fingerprint gate failed; refusing to train M2.")
+    actual_fingerprint = manifest.get("project_fingerprint")
+    if actual_fingerprint != EXPECTED_M1_FINGERPRINT:
+        raise RuntimeError(
+            "M1 fingerprint gate failed; refusing to train M2. "
+            f"expected {EXPECTED_M1_FINGERPRINT}, got {actual_fingerprint}"
+        )
     for name, expected in EXPECTED_SPLITS.items():
         actual = manifest.get("splits", {}).get(name, {}).get("records")
         if actual != expected:
