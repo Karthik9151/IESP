@@ -3,30 +3,35 @@
 **Audit date:** 2026-10-06  
 **Repository:** Karthik9151/IESP  
 **Default branch:** main  
-**Development branch:** milestone-0-architecture
+**Milestone status:** Milestone 1 complete
 
 ## Repository inventory
 
-The current main branch contains the following foundation:
+The repository now contains the Milestone 0 foundation plus the Milestone 1 dataset pipeline:
 
 .
 ├── README.md
 ├── .env.example
 ├── .gitignore
+├── requirements-ml.txt
 ├── .github/
 │   └── workflows/
 │       └── .gitkeep
 ├── app/
 │   └── .gitkeep
+├── configs/
+│   └── dataset.yaml
 ├── data/
 │   └── .gitkeep
 ├── docs/
 │   ├── architecture.md
 │   ├── current-state.md
+│   ├── dataset.md
 │   ├── deployment.md
 │   ├── implementation-plan.md
 │   ├── limitations.md
 │   ├── mail-integrations.md
+│   ├── milestone1-acceptance-report.md
 │   ├── ml-methodology.md
 │   └── threat-model.md
 ├── frontend/
@@ -36,19 +41,32 @@ The current main branch contains the following foundation:
 ├── notebooks/
 │   └── .gitkeep
 ├── scripts/
+│   ├── run_dataset_pipeline.py
 │   └── .gitkeep
+├── src/
+│   ├── __init__.py
+│   └── ml/
+│       ├── __init__.py
+│       └── data/
+│           ├── __init__.py
+│           └── pipeline.py
 └── tests/
+    ├── test_dataset_pipeline.py
     └── .gitkeep
 
-## Existing functionality
-
-No application implementation is currently present.
+## Functionality status
 
 | Area | Current state |
 |---|---|
+| Milestone 1 dataset preparation | Implemented |
+| Dataset provenance/documentation | Implemented |
+| Exact full-record deduplication | Implemented |
+| Text normalization | Implemented |
+| Stratified train/validation/test split | Implemented |
+| Split leakage/integrity checks | Implemented |
+| Dataset manifest generation | Implemented |
 | FastAPI backend | Not implemented |
 | React/Vite frontend | Not implemented |
-| NLP/ML training | Not implemented |
 | Phishing SVM | Not implemented |
 | Priority Logistic Regression | Not implemented |
 | Enhanced security engine | Not implemented |
@@ -58,52 +76,37 @@ No application implementation is currently present.
 | Database | Not implemented |
 | Docker | Not implemented |
 | GitHub Actions CI | Placeholder only |
-| Automated tests | Placeholder only |
-| Authoritative dataset | Not present in repository |
 | Model artifacts | Not present |
 
-## Existing documentation
+## Milestone 1 verified dataset
 
-The architecture, implementation plan, threat model, ML methodology, mail integration plan, deployment plan, and limitations documents provide the intended Milestone 0 design and later execution contract.
+The accepted Colab audit verified:
 
-## Important audit findings
+- Raw records: 108,685
+- Usable labeled-text records: 108,683
+- Exact duplicate copies: 13
+- Final unique records: 108,670
+- Benign: 60,636
+- Phishing: 48,034
+- Train: 76,069
+- Validation: 16,300
+- Test: 16,301
+- Random state: 42
+- Stratification: label
+- Project fingerprint: 34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582
 
-### 1. Dataset ambiguity
+See docs/dataset.md and docs/milestone1-acceptance-report.md for the complete acceptance record.
 
-The project specification contains conflicting dataset descriptions:
+## Data storage policy
 
-- 900 emails in one section.
-- 5,572 rows reduced to 5,169 unique records in another.
+The authoritative MeAJOR Parquet file is not stored in the repository. The repository .gitignore excludes raw and processed data. The pipeline reads the source file from a local or Colab path and writes generated Parquet outputs under data/processed/.
 
-No dataset count is assumed to be correct. Milestone 1 must identify the authoritative source and measure the actual rows, duplicates, labels, and provenance.
+## Research and security constraints
 
-### 2. Research integrity
+1. Email content remains untrusted data.
+2. No attachment execution or automatic URL visits are implemented here.
+3. TF-IDF has not been fitted in Milestone 1.
+4. Model preprocessing belongs after the split and must be fitted only on training data.
+5. Historical performance claims are not considered reproduced results.
 
-The historical model metrics in the supplied report are not automatically reproduced results.
-
-A metric can only be reported as reproduced when the exact dataset, labels, preprocessing, split, parameters, and evaluation procedure are verified.
-
-### 3. Security ordering
-
-The architecture requires:
-
-Security analysis -> security decision -> priority classification only for eligible non-phishing messages.
-
-### 4. Untrusted email data
-
-Email body text, HTML, URLs, headers, and attachment metadata must be treated as untrusted input. They must never become application instructions.
-
-## Milestone 0 acceptance status
-
-- [x] Repository audited
-- [x] Current state documented
-- [x] Architecture documented
-- [x] Milestone plan documented
-- [x] Threat model documented
-- [x] ML methodology documented
-- [x] Mail integration architecture documented
-- [x] Deployment/limitations documented
-- [x] Dataset inconsistency documented
-- [x] No ML/backend/frontend/mail implementation started
-
-Milestone 1 is intentionally blocked until explicitly authorized after review.
+Milestone 0 and Milestone 1 are complete. Milestone 2 is the next implementation stage.
