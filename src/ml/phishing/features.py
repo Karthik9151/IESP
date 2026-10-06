@@ -8,11 +8,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 def build_tfidf_vectorizer(config: Mapping[str, Any] | None = None) -> TfidfVectorizer:
-    """Build a deterministic TF-IDF vectorizer from configuration.
-
-    The vectorizer is only fitted when the training pipeline is fitted. This
-    module never fits on validation or test data.
-    """
+    """Build a deterministic TF-IDF vectorizer from configuration."""
     cfg = dict(config or {})
     ngram_range = tuple(cfg.get("ngram_range", [1, 2]))
 
@@ -28,15 +24,24 @@ def build_tfidf_vectorizer(config: Mapping[str, Any] | None = None) -> TfidfVect
     )
 
 
-def validate_feature_frame(frame, text_column: str = "text_normalized", label_column: str = "label") -> None:
+def validate_feature_frame(
+    frame,
+    text_column: str = "text_normalized",
+    label_column: str = "label",
+) -> None:
     """Validate the minimum schema required by the phishing model."""
     missing = [column for column in (text_column, label_column) if column not in frame.columns]
     if missing:
         raise ValueError(f"Missing phishing model columns: {missing}")
 
-    labels = set(frame[label_column].dropna().astype(int).unique().tolist())
-    if not labels.issubset({0, 1}):
-        raise ValueError(f"Unexpected phishing labels: {sorted(labels - {0, 1})}")
+    non_null = frame[label_column].dropna()
+    if not non_null.apply(lambda value: float(value).is_integer()).all():
+        raise ValueError("Phishing labels must be integer-valued 0/1 labels.")
+
+    labels = set(non_null.astype(int).unique().tolist())
+    unexpected = labels - {0, 1}
+    if unexpected:
+        raise ValueError(f"Unexpected phishing labels: {sorted(unexpected)}")
 
     if frame[text_column].isna().any():
         raise ValueError(f"{text_column} contains missing values.")
