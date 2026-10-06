@@ -72,7 +72,7 @@ def save_phishing_model(
     """Persist the model and an integrity-verifiable JSON metadata record."""
     artifact = Path(artifact_path)
     artifact.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, artifact)
+    joblib.dump(model, artifact, compress=3)
 
     metadata_path = artifact.with_name("metadata.json")
     payload = dict(metadata or {})
