@@ -47,9 +47,8 @@ def test_vader_feature_extraction_and_deterministic_transform():
     assert np.all(np.isfinite(first))
 
 
-def test_priority_training_prediction_persistence():
+def test_priority_training_prediction_persistence(tmp_path):
     pytest.importorskip("vaderSentiment")
-    import joblib
     from src.ml.priority.predict import load_priority_model, predict_priority
     from src.ml.priority.train import save_priority_model, train_priority_model
 
@@ -79,5 +78,9 @@ def test_priority_training_prediction_persistence():
     result = predict_priority(model, "URGENT critical security incident respond now today")
     assert result.label.value in {"P1", "P2", "P3"}
 
-    path = tmp_path = None
-    # Round-trip is covered separately because the artifact is ignored by Git.
+    artifact = tmp_path / "priority_pipeline.joblib"
+    save_priority_model(model, artifact)
+    loaded = load_priority_model(artifact)
+    assert predict_priority(model, "routine team update").label == predict_priority(
+        loaded, "routine team update"
+    ).label
