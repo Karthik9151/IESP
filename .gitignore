@@ -14,13 +14,17 @@ env/
 .env.*
 !.env.example
 
-# Local/generated data and model artifacts
+# Local/generated data
 data/raw/*
 data/processed/*
-models/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+# Generated model binaries
+models/*
 !models/.gitkeep
+!models/README.md
+!models/**/metadata.json
 
 # Frontend
 node_modules/
@@ -29,7 +33,9 @@ dist/
 # IDE/OS
 .vscode/
 .idea/
-.DS_Store
+.DS_Store/
 
-# Logs
+# Logs / runtime DB
 *.log
+*.sqlite3
+*.sqlite

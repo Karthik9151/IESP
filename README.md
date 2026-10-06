@@ -2,61 +2,125 @@
 
 ## Intelligent Email Security & Prioritization System
 
-IESP is a production-oriented academic prototype combining NLP, machine learning, cybersecurity analysis, and real-time email integration.
+IESP is a security-first academic prototype that combines deterministic email security analysis, a phishing ML baseline, transparent priority scoring, a FastAPI backend, a React dashboard, and read-only Gmail/Microsoft Graph adapters.
 
-### Core decision flow
+## Security-first decision flow
 
-Email -> Security analysis -> Security decision -> Priority analysis for eligible non-phishing email -> P1/P2/P3
+```text
+Email / provider adapter
+        ↓
+Safe parsing + normalization
+        ↓
+Security feature extraction
+        ↓
+TF-IDF + LinearSVC phishing evidence
+        ↓
+Security decision
+        ├── PHISHING
+        ├── SUSPICIOUS
+        ├── REVIEW REQUIRED
+        └── NON-PHISHING
+                 ↓
+          Priority eligibility
+                 ↓
+             P1 / P2 / P3
+                 ↓
+              FastAPI
+                 ↓
+          React dashboard
+```
 
-Security evaluation always happens before priority classification.
+Priority is never returned for PHISHING, SUSPICIOUS, or REVIEW REQUIRED.
 
-### Current status
+## Repository workflow
 
-**Milestone 1 — Dataset + ML pipeline foundation: COMPLETE**
+`development` is the only active development branch. `main` is the stable/reference branch. Milestones are stages, not branches.
 
-The authoritative MeAJOR dataset was verified, structurally prepared, exactly
-deduplicated, validated, split with stratification, checked for cross-split
-exact leakage, and documented.
+## M0–M8 status
 
-**Milestone 2 — Phishing ML: IMPLEMENTED; REAL-DATA ACCEPTANCE PENDING**
+| Milestone | Status | Evidence boundary |
+|---|---|---|
+| M0 Repository audit + architecture | VERIFIED | Repository structure, architecture, workflow and source-of-truth docs updated |
+| M1 Dataset + ML pipeline | VERIFIED | Accepted fingerprint/splits and reproducible pipeline are preserved |
+| M2 Security analysis engine / phishing ML | PARTIALLY VERIFIED | Code and tests present; real-data model run requires authoritative MeAJOR file in the execution environment |
+| M3 Backend + database | VERIFIED | FastAPI, validation, API-key auth, SQLite metadata persistence, and API regression tests |
+| M4 React dashboard | IMPLEMENTED | React/Vite UI, API integration, responsive states, safe text rendering |
+| M5 Gmail / Outlook integration | IMPLEMENTED | Read-only provider adapters + OAuth state/PKCE helpers + mocked adapter tests; live provider credentials not tested here |
+| M6 Testing + security testing | IMPLEMENTED / PARTIALLY VERIFIED | Security and integration test suites are included; full dependency matrix is CI-driven |
+| M7 Deployment | IMPLEMENTED / PARTIALLY VERIFIED | Docker, Compose, CI, dependency audit, secret scan; external deployment not executed |
+| M8 Documentation + presentation | IMPLEMENTED | Project docs, demo runbook, methodology, threat model, deployment and presentation outline |
 
-IESP contains a leakage-safe TF-IDF + LinearSVC phishing baseline, prediction/evaluation utilities, tests, configuration, and a full authoritative-data acceptance runner.
-The authoritative Parquet is not committed to GitHub, so final performance
-metrics must be produced in a controlled local/Colab environment.
+## Preserved M1 contract
 
-M3 priority ML, M4 security analysis, and M5 FastAPI application layers are implemented. Provider mail integrations, frontend UI, CI/CD, Docker, deployment, and production model serving remain future work.
+- Dataset: `meajor_cleaned_preprocessed.parquet.gzip`
+- Project fingerprint: `34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582`
+- Train: `76069`
+- Validation: `16300`
+- Test: `16301`
+- 70/15/15 stratified split, random state 42
+- exact full-record deduplication and cross-split fingerprint leakage checks
+- authoritative dataset intentionally excluded from GitHub
 
-### Milestone 2 implementation
+## ML baselines
 
-- src/ml/phishing/features.py — TF-IDF construction and schema validation.
-- src/ml/phishing/train.py — TF-IDF + LinearSVC training and artifact persistence.
-- src/ml/phishing/predict.py — labels and raw SVM decision scores.
-- src/ml/phishing/evaluate.py — required classification metrics and confusion matrix.
-- configs/phishing.yaml — reproducible feature/model/evaluation configuration.
-- scripts/run_phishing_model.py — trains on M1 train and evaluates validation/test.
-- scripts/run_m2_acceptance.py — re-runs accepted M1 preparation, gates on the accepted fingerprint/split counts, trains without row limits, audits TF-IDF state, performs deterministic retraining, and writes acceptance evidence.
-- tests/test_phishing_model.py — leakage, dimensions, determinism, persistence and evaluation tests.
-- docs/ml-methodology.md — methodology and score semantics.
-- tests/test_m2_acceptance_runner.py — verifies artifact hash and save/load prediction equivalence.
-- docs/milestone2-acceptance-report.md — acceptance boundary and required evidence.
+### Phishing
+TF-IDF word unigrams/bigrams + LinearSVC. TF-IDF is fitted only on the training split. `decision_function` is a ranking margin, not a probability.
 
-The LinearSVC decision_function output is a ranking margin, **not a probability**.
+### Priority
+VADER sentiment + engineered email urgency features + Logistic Regression. P1/P2/P3 are deterministic proxy/project labels, not human urgency annotations.
 
-The authoritative dataset and generated model artifacts are not committed to GitHub.
+## Security controls
 
-### Research integrity
+Email content is treated only as untrusted data. Attachments are metadata-only and never executed. URLs are inspected structurally and never automatically visited. Local/private IP destinations are escalated as SSRF-sensitive. HTML is analyzed as text and is never rendered by the dashboard. API authentication uses an environment-provided key with constant-time comparison. Logs exclude request bodies, credentials and raw attachments.
 
-The project does not reuse historical model metrics as reproduced results
-unless the exact dataset, preprocessing, split, parameters, and evaluation
-procedure are matched.
+## API
 
+- `GET /health`
+- `GET /ready`
+- `POST /api/v1/analyze`
+- `GET /api/v1/stats`
+- `GET /api/v1/recent?limit=20`
+- `GET /api/v1/analysis/{message_id}`
 
-### Milestone 3–5 implementation
+Analysis requires `X-API-Key` unless authentication is explicitly disabled in development/test mode.
 
-Milestone 3 adds the VADER + engineered-feature + Logistic Regression priority baseline with deterministic P1/P2/P3 proxy labels. These labels are project/proxy labels, not human urgency annotations.
+## Run locally
 
-Milestone 4 adds provider-neutral domain models, safe MIME/header parsing, structural URL analysis without network requests, metadata-only attachment policy, configurable fail-closed security decisions, explicit priority eligibility, and secret-safe logging.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-ml.txt -r requirements-api.txt
+export IESP_ENVIRONMENT=development
+export IESP_API_KEY='replace-with-a-long-random-secret'
+uvicorn backend.app.main:app --reload
+```
 
-Milestone 5 adds the versioned FastAPI API at /api/v1/analyze, public /health, readiness /ready, strict Pydantic validation, environment-provided API-key authentication, an authorization boundary, request IDs, restrictive CORS, safe errors, and a persistence abstraction.
+Frontend:
 
-Security invariant: Untrusted email -> safe parsing -> security analysis -> security decision -> priority only for eligible NON-PHISHING email -> P1/P2/P3.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The backend intentionally reports `/ready` as unavailable until required model artifacts exist.
+
+## Reproduce M1 and train models
+
+After obtaining the accepted MeAJOR file locally or in Colab:
+
+```bash
+python scripts/run_dataset_pipeline.py --input /path/to/meajor_cleaned_preprocessed.parquet.gzip
+python scripts/run_phishing_model.py
+python scripts/run_priority_model.py
+```
+
+The existing `scripts/run_m2_acceptance.py` refuses to claim acceptance when the fingerprint or split contract does not match.
+
+## Provider integrations
+
+`src/providers/` contains provider-neutral interfaces, Gmail and Microsoft Graph read-only adapters, normalization helpers, and OAuth state/PKCE helpers. No adapter exposes mailbox-mutating operations. Live provider validation requires external application configuration and is not claimed as completed here.
+
+## Research integrity
+
+No accuracy, F1, ROC-AUC, PR-AUC, provider-success, deployment-success, or security-test result is claimed unless that execution was actually observed. External blockers are recorded as PENDING/BLOCKED rather than hidden.

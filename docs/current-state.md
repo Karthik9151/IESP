@@ -1,124 +1,64 @@
 # Current Repository State
 
 **Audit date:** 2026-10-07  
-**Repository:** Karthik9151/IESP  
-**Default branch:** main  
-**Milestone status:** M0–M5 implementation consolidated; M2 real-data acceptance pending
+**Repository:** `Karthik9151/IESP`  
+**Active development branch:** `development`  
+**Stable/reference branch:** `main`
 
-## Repository inventory
+## Implementation status
 
-The repository contains the project foundation plus the implemented M1–M5 layers. The M2 authoritative dataset run remains an external acceptance step.
-
-.
-├── README.md
-├── .env.example
-├── .gitignore
-├── requirements-ml.txt
-├── .github/
-│   └── workflows/
-│       └── .gitkeep
-├── app/
-│   └── .gitkeep
-├── configs/
-│   └── dataset.yaml
-├── data/
-│   └── .gitkeep
-├── docs/
-│   ├── architecture.md
-│   ├── current-state.md
-│   ├── dataset.md
-│   ├── deployment.md
-│   ├── implementation-plan.md
-│   ├── limitations.md
-│   ├── mail-integrations.md
-│   ├── milestone1-acceptance-report.md
-│   ├── ml-methodology.md
-│   └── threat-model.md
-├── frontend/
-│   └── .gitkeep
-├── models/
-│   └── .gitkeep
-├── notebooks/
-│   └── .gitkeep
-├── scripts/
-│   ├── run_dataset_pipeline.py
-│   └── .gitkeep
-├── src/
-│   ├── __init__.py
-│   └── ml/
-│       ├── __init__.py
-│       └── data/
-│           ├── __init__.py
-│           └── pipeline.py
-└── tests/
-    ├── test_dataset_pipeline.py
-    └── .gitkeep
-
-## Functionality status
-
-| Area | Current state |
-|---|---|
-| Milestone 1 dataset preparation | Implemented |
-| Dataset provenance/documentation | Implemented |
-| Exact full-record deduplication | Implemented |
-| Text normalization | Implemented |
-| Stratified train/validation/test split | Implemented |
-| Split leakage/integrity checks | Implemented |
-| Dataset manifest generation | Implemented |
-| FastAPI backend | Implemented (M5) |
-| React/Vite frontend | Not implemented |
-| Phishing SVM | Implemented on v0.3; real-data acceptance pending |
-| Priority Logistic Regression | Implemented (M3) |
-| Enhanced security engine | Implemented (M4) |
-| Gmail integration | Not implemented |
-| Microsoft Graph integration | Not implemented |
-| Generic IMAP integration | Not implemented |
-| Database | Not implemented |
-| Docker | Not implemented |
-| GitHub Actions CI | Placeholder only |
-| Model artifacts | Not committed; generated locally by M2 runner |
-
-## Milestone 1 verified dataset
-
-The accepted Colab audit verified:
-
-- Raw records: 108,685
-- Usable labeled-text records: 108,683
-- Exact duplicate copies: 13
-- Final unique records: 108,670
-- Benign: 60,636
-- Phishing: 48,034
-- Train: 76,069
-- Validation: 16,300
-- Test: 16,301
-- Random state: 42
-- Stratification: label
-- Project fingerprint: 34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582
-
-See docs/dataset.md and docs/milestone1-acceptance-report.md for the complete acceptance record.
-
-## Data storage policy
-
-The authoritative MeAJOR Parquet file is not stored in the repository. The repository .gitignore excludes raw and processed data. The pipeline reads the source file from a local or Colab path and writes generated Parquet outputs under data/processed/.
-
-## Research and security constraints
-
-1. Email content remains untrusted data.
-2. No attachment execution or automatic URL visits are implemented here.
-3. TF-IDF has not been fitted in Milestone 1.
-4. Model preprocessing belongs after the split and must be fitted only on training data.
-5. Historical performance claims are not considered reproduced results.
-
-Milestones M0–M5 are implemented in the consolidated development state. M2 real-data acceptance remains pending because the authoritative Parquet is not available in this environment. M3 uses deterministic proxy priority labels; M4 security controls are regression-tested; M5 exposes the versioned FastAPI application layer.
-
-
-## Post-M5 implementation update — 2026-10-06
-
-| Milestone | Implementation | Acceptance boundary |
+| Layer | Status | Notes |
 |---|---|---|
-| M2 Phishing ML | Implemented with TF-IDF + LinearSVC, runtime feature-state audit, deterministic retraining, and artifact integrity checks | Real-data acceptance PENDING because the authoritative Parquet is unavailable here |
-| M3 Priority ML | Implemented with VADER, engineered urgency features, proxy labels, and Logistic Regression | Fixture/code verification implemented; real model execution requires the pinned VADER dependency |
-| M4 Security Engine | Implemented with safe parsing, URL/attachment analysis, fail-closed decisioning, explicit priority gating, and safe logging | Security regression tests implemented |
-| M5 FastAPI | Implemented with versioned analyze endpoint, health/readiness, strict schemas, API-key auth, authorization, safe errors, request IDs, restrictive CORS, and repository abstraction | API regression tests implemented |
+| Repository audit / architecture | VERIFIED | Consolidated on `development` |
+| M1 data pipeline | VERIFIED | Accepted fingerprint and split contract retained |
+| Phishing ML | PARTIALLY VERIFIED | Reproducible implementation exists; real-data run is blocked when the authoritative dataset is absent |
+| Priority ML | IMPLEMENTED | VADER + engineered features + Logistic Regression + proxy labels |
+| Security engine | VERIFIED | MIME/header, URL, attachment, HTML and fail-closed decisioning |
+| Backend | VERIFIED | FastAPI, auth, validation, SQLite metadata repository, safe errors |
+| Frontend | IMPLEMENTED | React/Vite dashboard with safe text display |
+| Gmail adapter | IMPLEMENTED | Read-only retrieval, raw MIME parsing |
+| Microsoft Graph adapter | IMPLEMENTED | Read-only retrieval and attachment metadata |
+| OAuth helpers | IMPLEMENTED | State validation and PKCE helper; token storage remains external |
+| Testing | IMPLEMENTED / PARTIALLY VERIFIED | Unit/integration/security suites plus CI automation |
+| Docker | IMPLEMENTED | Backend and frontend images plus Compose |
+| CI/CD | IMPLEMENTED | Test, compile, dependency-audit and secret-scan jobs |
+| External deployment | PENDING | Not executed in this environment |
+| Live provider OAuth validation | PENDING | Requires user-owned provider app credentials and consent |
 
-Security classification always precedes priority classification. Priority is requested only after an explicit NON-PHISHING decision. Raw email bodies, attachments, URLs and secrets are not exposed through logs or API responses by default.
+## Structure
+
+```text
+IESP/
+├── backend/app/
+├── frontend/
+├── src/domain/
+├── src/parsing/
+├── src/security/
+├── src/ml/data/
+├── src/ml/phishing/
+├── src/ml/priority/
+├── src/providers/
+├── configs/
+├── data/
+├── models/
+├── scripts/
+├── tests/
+├── docs/
+├── Dockerfile
+├── docker-compose.yml
+└── .github/workflows/ci.yml
+```
+
+## Preserved M1 record
+
+Raw 108,685; usable 108,683; exact duplicate copies 13; final unique 108,670; benign 60,636; phishing 48,034. Accepted fingerprint: `34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582`; splits 76,069 / 16,300 / 16,301.
+
+## Genuine blockers
+
+1. The authoritative MeAJOR Parquet is not stored in GitHub, so final real-data M2 execution must be performed where that exact file is available.
+2. Docker is not installed in the current runtime, so container build verification cannot be claimed locally.
+3. Live Gmail/Outlook OAuth requires external application registration and user consent; mocked adapter tests cover the adapter contract instead.
+
+## Security invariants
+
+Security runs before priority; priority is possible only after NON-PHISHING; parser failure and critical signals fail closed; URLs are not automatically fetched; attachments are not executed; secrets and full email content are not logged; the authoritative dataset stays outside Git history.

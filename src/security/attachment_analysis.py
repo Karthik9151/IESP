@@ -5,14 +5,8 @@ import re
 
 from src.domain.models import AttachmentMetadata, SecuritySignal, Severity
 
-DANGEROUS_EXTENSIONS = {
-    ".exe", ".dll", ".scr", ".com", ".msi", ".hta", ".cpl", ".jar", ".js", ".jse",
-    ".vbs", ".vbe", ".wsf", ".wsh", ".bat", ".cmd", ".ps1", ".lnk", ".reg",
-    ".docm", ".xlsm", ".pptm", ".xlam", ".xltm",
-}
-_DOUBLE_EXT_RE = re.compile(
-    r"\.(pdf|docx?|xlsx?|pptx?|txt|jpg|png|zip|html?)\.(exe|js|vbs|bat|cmd|scr|lnk|msi)$", re.I
-)
+DANGEROUS_EXTENSIONS = {".exe",".dll",".scr",".com",".msi",".hta",".cpl",".jar",".js",".jse",".vbs",".vbe",".wsf",".wsh",".bat",".cmd",".ps1",".lnk",".reg",".docm",".xlsm",".pptm",".xlam",".xltm"}
+_DOUBLE_EXT_RE = re.compile(r"\.(pdf|docx?|xlsx?|pptx?|txt|jpg|png|zip|html?)\.(exe|js|vbs|bat|cmd|scr|lnk|msi)$", re.I)
 
 
 def _signal(code, severity, message, **evidence):
@@ -26,6 +20,8 @@ def analyze_attachment(attachment: AttachmentMetadata, config: dict | None = Non
     suffixes = [part for part in lower.split(".") if part]
     ext = "." + suffixes[-1] if suffixes else ""
     signals = []
+    if "/" in filename or "\\" in filename or ".." in lower or filename in {".", ".."}:
+        signals.append(_signal("ATTACHMENT_PATH_TRAVERSAL", Severity.HIGH, "Attachment filename contains path-like traversal characters."))
     if ext in DANGEROUS_EXTENSIONS:
         signals.append(_signal("DANGEROUS_EXTENSION", Severity.HIGH, "Attachment extension is restricted by policy.", extension=ext))
     if _DOUBLE_EXT_RE.search(lower):
