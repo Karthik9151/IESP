@@ -86,3 +86,27 @@ def test_priority_gate_is_explicit():
 def test_safe_logging_drops_secrets_and_body():
     fields = sanitize_log_fields({"request_id": "r", "password": "secret", "api_key": "abc", "raw_body": "sensitive body", "message_id": "m"})
     assert fields == {"request_id": "r", "message_id": "m"}
+
+
+def test_security_engine_never_assigns_priority_to_blocked_security_states():
+    from src.security.engine import SecurityEngine
+
+    class PhishingStub:
+        def __init__(self, label, score):
+            self.label, self.score = label, score
+        def predict(self, text):
+            return self.label, self.score
+
+    class PriorityStub:
+        def predict(self, text):
+            raise AssertionError("priority model must not run for blocked security states")
+
+    blocked = make_email(headers={"authentication-results": "spf=fail"})
+    engine = SecurityEngine(
+        CONFIG,
+        phishing_model=PhishingStub(1, 2.0),
+        priority_model=PriorityStub(),
+    )
+    result = engine.analyze(blocked)
+    assert result.security.classification is SecurityClassification.PHISHING
+    assert result.priority is None
