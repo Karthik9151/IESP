@@ -6,17 +6,9 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Objective:** Audit the repository and establish a security-first architecture before implementation.
 
-**Tasks:** repository audit; component boundaries; academic-vs-enhanced architecture; data flow; security principles; provider abstraction; dataset ambiguity documentation.
+**Status:** Complete.
 
-**Files:** `docs/current-state.md`, `docs/architecture.md`, `docs/implementation-plan.md`.
-
-**Dependencies:** Git/GitHub only.
-
-**Tests:** audit and documentation consistency review.
-
-**Acceptance:** repository state, architecture, target structure, dataset issue, security requirements and all milestones documented; no implementation started.
-
-**Expected commit:** `milestone-0: establish repository audit and architecture`
+**Expected commit:** milestone-0: establish repository audit and architecture
 
 ---
 
@@ -24,17 +16,36 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Objective:** Obtain and reproducibly prepare the authoritative dataset.
 
-**Tasks:** identify source; investigate 900 vs 5,572/5,169 discrepancy; verify provenance/schema/license; clean; deduplicate; validate labels; split without leakage; version dataset manifest.
+**Status:** **COMPLETE**
 
-**Files:** `src/ml/data/`, `configs/dataset.yaml`, `tests/test_dataset_pipeline.py`, `docs/dataset.md`; raw/processed data locations as appropriate.
+**Implemented files:**
 
-**Dependencies:** authoritative dataset; Python/pandas/scikit-learn.
+- src/ml/data/pipeline.py
+- configs/dataset.yaml
+- scripts/run_dataset_pipeline.py
+- tests/test_dataset_pipeline.py
+- docs/dataset.md
+- docs/milestone1-acceptance-report.md
+- requirements-ml.txt
 
-**Tests:** schema, duplicates, labels, missing values, reproducible split, leakage.
+**Verified acceptance:**
 
-**Acceptance:** actual counts and provenance reconciled from source data; no fabricated records/labels.
+- authoritative MeAJOR source identified;
+- schema verified;
+- missing label/body records handled;
+- labels restricted to 0/1;
+- exact full-record duplicates removed;
+- text_raw preserved;
+- conservative text_normalized created;
+- 70/15/15 stratified split created with random state 42;
+- exact fingerprint leakage checked across splits;
+- split reproducibility verified;
+- final dataset fingerprint and split fingerprints recorded;
+- TF-IDF was not fitted before the split.
 
-**Expected commit:** `milestone-1: build reproducible dataset pipeline`
+**Verified final counts:** 108,670 unique records: 60,636 benign and 48,034 phishing.
+
+**Expected commit:** milestone-1: build reproducible dataset pipeline
 
 ---
 
@@ -42,9 +53,11 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Objective:** Implement the academic TF-IDF + SVM phishing baseline.
 
+**Status:** Not started.
+
 **Tasks:** text preprocessing; TF-IDF; SVM training; held-out evaluation; artifact/version management; calibration only if probability semantics are required.
 
-**Files:** `src/ml/phishing/`, `models/phishing/`, `configs/phishing.yaml`, `tests/test_phishing_model.py`, `docs/ml-methodology.md`.
+**Files:** src/ml/phishing/, models/phishing/, configs/phishing.yaml, tests/test_phishing_model.py, docs/ml-methodology.md.
 
 **Dependencies:** Milestone 1; scikit-learn and selected NLP libraries.
 
@@ -52,7 +65,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** reproducible baseline and honest held-out evaluation; raw SVM decision scores are not called probabilities.
 
-**Expected commit:** `milestone-2: implement phishing ML baseline`
+**Expected commit:** milestone-2: implement phishing ML baseline
 
 ---
 
@@ -62,7 +75,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** define proxy labels; feature extraction; VADER; Logistic Regression; P1/P2/P3 evaluation; limitations.
 
-**Files:** `src/ml/priority/`, `models/priority/`, `configs/priority.yaml`, `tests/test_priority_model.py`.
+**Files:** src/ml/priority/, models/priority/, configs/priority.yaml, tests/test_priority_model.py.
 
 **Dependencies:** Milestones 1–2; VADER; scikit-learn.
 
@@ -70,7 +83,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** priority model is separate from security classification; proxy labels are not presented as human judgment.
 
-**Expected commit:** `milestone-3: implement priority ML baseline`
+**Expected commit:** milestone-3: implement priority ML baseline
 
 ---
 
@@ -80,7 +93,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** safe MIME/header parsing; security indicators; URL/attachment metadata analysis; deterministic rules; combine ML evidence and security signals; controlled outcomes: PHISHING, SUSPICIOUS, NON-PHISHING, REVIEW REQUIRED.
 
-**Files:** `src/security/`, `src/parsing/`, `src/domain/`, `configs/security.yaml`, `tests/security/`, `docs/threat-model.md`.
+**Files:** src/security/, src/parsing/, src/domain/, configs/security.yaml, tests/security/, docs/threat-model.md.
 
 **Dependencies:** Milestones 1–3.
 
@@ -88,7 +101,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** security classification happens before priority; no attachment execution; no automatic URL visits; SSRF protections; safe logging.
 
-**Expected commit:** `milestone-4: add security analysis and decision engine`
+**Expected commit:** milestone-4: add security analysis and decision engine
 
 ---
 
@@ -98,7 +111,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** FastAPI app; schemas; analysis endpoint; health/readiness; validation; safe errors/logging; persistence service abstraction; authentication/authorization as required.
 
-**Files:** `backend/app/`, `backend/tests/`, backend dependency manifest, `configs/`.
+**Files:** backend/app/, backend/tests/, backend dependency manifest, configs/.
 
 **Dependencies:** Milestones 1–4.
 
@@ -106,7 +119,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** secure API contract without secret or unnecessary body leakage.
 
-**Expected commit:** `milestone-5: add secure FastAPI backend`
+**Expected commit:** milestone-5: add secure FastAPI backend
 
 ---
 
@@ -116,7 +129,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** React/Vite app; inbox/results; message detail; security signals; review queue; priority display only when eligible; API client; safe email rendering.
 
-**Files:** `frontend/`, `frontend/src/`, `frontend/tests/`.
+**Files:** frontend/, frontend/src/, frontend/tests/.
 
 **Dependencies:** Milestone 5; Node.js/npm.
 
@@ -124,7 +137,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** security result is clearly separate from priority; untrusted email content is safely rendered.
 
-**Expected commit:** `milestone-6: add React security dashboard`
+**Expected commit:** milestone-6: add React security dashboard
 
 ---
 
@@ -134,7 +147,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** define MailProvider interface; Gmail API adapter; Microsoft Graph adapter; IMAP adapter where required; OAuth/token lifecycle; least-privilege scopes; normalization; timeout/retry/rate-limit handling.
 
-**Files:** `src/integrations/mail/`, provider adapters, `tests/integrations/`, `docs/mail-integrations.md`.
+**Files:** src/integrations/mail/, provider adapters, tests/integrations/, docs/mail-integrations.md.
 
 **Dependencies:** Milestone 5; provider APIs/SDKs.
 
@@ -142,7 +155,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** interchangeable adapters; no stored passwords; secrets outside source control.
 
-**Expected commit:** `milestone-7: add mail-provider abstraction and integrations`
+**Expected commit:** milestone-7: add mail-provider abstraction and integrations
 
 ---
 
@@ -152,7 +165,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** Docker; local orchestration where useful; lint/format/type checks; tests; dependency scanning; secret scanning; pinned/locked dependencies.
 
-**Files:** `Dockerfile`, orchestration config, `.dockerignore`, `.github/workflows/`, lockfiles, `docs/deployment.md`.
+**Files:** Dockerfile, orchestration config, .dockerignore, .github/workflows/, lockfiles, docs/deployment.md.
 
 **Dependencies:** Milestones 5–7.
 
@@ -160,7 +173,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** reproducible build and clean/triaged CI security checks.
 
-**Expected commit:** `milestone-8: containerize and add DevSecOps CI`
+**Expected commit:** milestone-8: containerize and add DevSecOps CI
 
 ---
 
@@ -170,7 +183,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** end-to-end tests; malformed/adversarial input; SSRF; attachment safety; auth; rate limits; provider integration; ML regression; false-positive/false-negative review; residual-risk documentation.
 
-**Files:** `tests/e2e/`, `tests/security/`, `tests/integration/`, `docs/test-report.md`.
+**Files:** tests/e2e/, tests/security/, tests/integration/, docs/test-report.md.
 
 **Dependencies:** Milestones 1–8.
 
@@ -178,7 +191,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** critical issues resolved or explicitly release-blocked; regression suite passes; limitations documented.
 
-**Expected commit:** `milestone-9: complete security and integration validation`
+**Expected commit:** milestone-9: complete security and integration validation
 
 ---
 
@@ -188,7 +201,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Tasks:** hosting choice; external secret management; database/network/TLS configuration; deployment; monitoring; backups; rollback; least-privilege production mail credentials; smoke tests.
 
-**Files:** `infra/` or provider-specific deployment config; `docs/deployment.md`; `docs/operations.md`.
+**Files:** infra/ or provider-specific deployment config; docs/deployment.md; docs/operations.md.
 
 **Dependencies:** Milestones 1–9.
 
@@ -196,7 +209,7 @@ This is the staged implementation contract for the Intelligent Email Security & 
 
 **Acceptance:** reproducible deployment with TLS, managed secrets, access controls, monitoring and rollback.
 
-**Expected commit:** `milestone-10: deploy validated IESP system`
+**Expected commit:** milestone-10: deploy validated IESP system
 
 ## Global execution order
 
@@ -230,4 +243,4 @@ Deployment
 
 The academic ML baselines remain separately measurable from the enhanced security engine.
 
-**Milestone 0 stop rule:** do not begin Milestone 1 or create ML/application implementation until explicitly instructed.
+Milestone 2 may begin only after the Milestone 1 repository implementation has been locally verified against the authoritative dataset.
