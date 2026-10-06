@@ -84,3 +84,19 @@ def test_priority_training_prediction_persistence(tmp_path):
     assert predict_priority(model, "routine team update").label == predict_priority(
         loaded, "routine team update"
     ).label
+
+
+def test_priority_held_out_evaluation_metrics():
+    from src.ml.priority.evaluate import evaluate_priority_predictions
+
+    metrics = evaluate_priority_predictions(
+        ["P1", "P2", "P3", "P1"],
+        ["P1", "P3", "P3", "P2"],
+    )
+    assert metrics["labels"] == ["P1", "P2", "P3"]
+    assert "accuracy" in metrics
+    assert "precision_macro" in metrics
+    assert "recall_macro" in metrics
+    assert "f1_macro" in metrics
+    assert len(metrics["confusion_matrix"]) == 3
+    assert set(metrics["per_class"]) == {"P1", "P2", "P3"}
