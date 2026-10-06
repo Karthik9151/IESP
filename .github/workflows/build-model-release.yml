@@ -26,7 +26,7 @@ permissions:
 jobs:
   train-and-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -173,3 +173,35 @@ jobs:
             models/priority/priority_metrics.json \
             models/model-manifest.json \
             --clobber
+
+      - name: Verify published release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: models-v1
+        run: |
+          set -e
+          rm -rf /tmp/iesp-model-release-verification
+          mkdir -p /tmp/iesp-model-release-verification
+          gh release download "$RELEASE_TAG" \
+            --pattern "model-manifest.json" \
+            --dir /tmp/iesp-model-release-verification
+          test -s /tmp/iesp-model-release-verification/model-manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(
+              Path("/tmp/iesp-model-release-verification/model-manifest.json")
+              .read_text(encoding="utf-8")
+          )
+          assert manifest["release_tag"] == "models-v1"
+          assert manifest["project"] == "IESP"
+          assert manifest["m1_contract"]["project_fingerprint"] == "34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582"
+          assert (
+              manifest["m1_contract"]["train_records"],
+              manifest["m1_contract"]["validation_records"],
+              manifest["m1_contract"]["test_records"],
+          ) == (76069, 16300, 16301)
+          assert set(manifest["models"]) == {"phishing", "priority"}
+          print("models-v1 release manifest verified successfully.")
+          PY
