@@ -20,10 +20,20 @@ def create_state() -> str:
     return secrets.token_urlsafe(32)
 
 
-def build_authorization_url(config: OAuthConfig, state: str) -> str:
+def build_authorization_url(config: OAuthConfig, state: str, *, code_challenge: str | None = None) -> str:
     if not state or len(state) < 16:
         raise ValueError("OAuth state must be unpredictable and non-empty")
-    return f"{config.authorization_endpoint}?{urlencode({'client_id': config.client_id, 'redirect_uri': config.redirect_uri, 'response_type': 'code', 'scope': ' '.join(config.scopes), 'state': state})}"
+    params = {
+        "client_id": config.client_id,
+        "redirect_uri": config.redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(config.scopes),
+        "state": state,
+    }
+    if code_challenge:
+        params["code_challenge"] = code_challenge
+        params["code_challenge_method"] = "S256"
+    return f"{config.authorization_endpoint}?{urlencode(params)}"
 
 
 def validate_state(expected: str, received: str) -> bool:
