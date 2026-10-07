@@ -141,7 +141,9 @@ def test_safe_internal_error_does_not_leak_details():
 
 
 def test_ready_reports_model_blockers_when_artifacts_unavailable():
-    client, _ = make_client()
+    service = AnalysisService(SecurityEngine({}))
+    settings = Settings(environment="test", auth_mode="required", api_key="test-secret")
+    client = TestClient(create_app(settings, service))
     response = client.get("/ready")
     assert response.status_code == 503
     assert "phishing_model_unavailable" in response.json()["blockers"]
