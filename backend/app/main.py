@@ -367,7 +367,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
             high_risk_items=[_history_item(row) for row in high_risk],
         )
 
-    @app.get("/api/v1/reports/export", responses={200: {"description": "Report export in JSON or CSV format.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportExportResponse"}}, "text/csv": {"schema": {"type": "string"}}}}, 401: AUTH_ERROR, 422: VALIDATION_ERROR, 500: INTERNAL_ERROR})
+    @app.get("/api/v1/reports/export", response_model=ReportExportResponse, responses={200: {"description": "Report export in JSON or CSV format.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportExportResponse"}}, "text/csv": {"schema": {"type": "string"}}}}, 401: AUTH_ERROR, 422: VALIDATION_ERROR, 500: INTERNAL_ERROR})
     async def report_export(format: str = Query("csv", pattern=r"^(csv|json)$"), ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         rows = service.history(ctx.workspace_id, page=1, page_size=settings.report_export_limit, sort_by="created_at", sort_order="desc")["items"]
         generated_at = datetime.now(timezone.utc).isoformat()
