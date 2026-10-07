@@ -2,94 +2,73 @@
 
 ## Local
 
-```bash
+Backend:
+
+\`\`\`bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-ml.txt -r requirements-api.txt
 export IESP_ENVIRONMENT=development
-export IESP_API_KEY='replace-with-a-random-secret'
 uvicorn backend.app.main:app --reload
-```
+\`\`\`
 
-Start the frontend with `cd frontend && npm install && npm run dev`.
+Frontend:
+
+\`\`\`bash
+cd frontend
+npm install
+npm run dev
+\`\`\`
+
+The browser authenticates using an HTTP-only session cookie. No API key is needed in frontend code.
 
 ## Model release
 
-The production backend requires both ML runtime artifacts.
+The production backend requires the existing \`models-v1\` runtime artifacts. The startup bootstrap downloads and verifies the release manifest, accepted M1 fingerprint/split contract, artifact size and SHA-256 before starting the API.
 
-`.github/workflows/build-model-release.yml` downloads the authoritative MeAJOR release from Zenodo, verifies its checksum and accepted M1 contract, trains both models, verifies the artifacts, and publishes them to the public GitHub Release `models-v1`.
-
-The authoritative model-release workflow **#16** completed successfully from commit `1b84ff5f2a8d33b22cab6294b085d97e8964cb21`.
-
-The workflow remains manually runnable and also runs automatically on `main` when the model-building workflow, M1 pipeline, ML code/configuration, or ML dependencies change.
-
-The dataset itself is never committed to GitHub.
+The authoritative dataset remains outside Git.
 
 ## Docker
 
-The Docker image no longer downloads model artifacts during `docker build`. This keeps image construction independent from the availability of the external model release.
+The backend image runs as an unprivileged \`iesp\` user and verifies model artifacts at container startup.
 
-At container startup, `scripts/bootstrap_models.py` downloads `models-v1` when required, validates the release manifest, checks the accepted M1 fingerprint/split contract, verifies SHA-256 and file size for both artifacts, and then starts the API. Existing valid artifacts are reused.
-
-```bash
+\`\`\`bash
 docker build -t iesp-backend .
-docker run --rm -p 8000:8000 \
-  -e IESP_ENVIRONMENT=development \
-  -e IESP_AUTH_MODE=disabled \
+docker run --rm -p 8000:8000 \\
+  -e IESP_ENVIRONMENT=development \\
   iesp-backend
-```
+\`\`\`
 
-If `models-v1` does not yet exist, the image can still be built, but the container will not start until the release is published.
+For local persistent history, mount \`/app/data\`. Production should use PostgreSQL for durable history.
+
+The frontend Docker image builds the Vite application and serves static assets with Nginx security headers.
 
 ## Render
 
-The recommended production/demo layout is two Render services:
+Recommended layout:
 
 1. Backend: Render Web Service using the repository Dockerfile.
-2. Frontend: Render Static Site built from `frontend/`.
+2. Database: Render Postgres.
+3. Frontend: Render Static Site from \`frontend/\`.
 
-The backend Docker runtime honors Render's `PORT` environment variable and starts on `0.0.0.0`. The startup bootstrap downloads `models-v1`, validates the M1 contract, and verifies SHA-256 and file sizes before the API starts.
+Backend environment requirements:
 
-Backend settings:
+- \`IESP_ENVIRONMENT=production\`
+- \`DATABASE_URL\` from Render Postgres
+- \`IESP_SESSION_SECURE=true\`
+- \`IESP_SESSION_SAMESITE=lax\`
+- \`IESP_ALLOWED_ORIGINS\` set to the exact HTTPS frontend origin
+- bounded request/email limits
+- existing security/model configuration paths
 
-- Runtime: Docker
-- Root directory: repository root
-- Health check path: `/ready`
-- `IESP_ENVIRONMENT=production`
-- `IESP_AUTH_MODE=required`
-- `IESP_API_KEY`: set as a Render secret
-- `IESP_ALLOWED_ORIGINS`: set to the exact deployed frontend origin
-- `IESP_DATABASE_PATH=/app/data/iesp.sqlite3`
-- `IESP_MODEL_RELEASE_TAG=models-v1`
-
-Frontend settings:
-
-- Service type: Static Site
-- Root directory: `frontend`
-- Build command: `npm install --no-audit --no-fund && npm run build`
-- Publish directory: `dist`
-- `VITE_API_BASE_URL`: exact HTTPS URL of the deployed backend
-
-After deployment, verify:
-
-- backend `/health` -> HTTP 200
-- backend `/ready` -> HTTP 200 with `{"status":"ready","blockers":[]}`
-- frontend loads over HTTPS
-- browser requests from the frontend to `/api/v1/stats` and `/api/v1/analyze` succeed with the backend API key
-- a test analysis is persisted and then visible through the recent/history endpoint
-
-The deployed service should not be considered ready until the `/ready` response is observed.
-
-Render's free web services have ephemeral filesystems, so the project's SQLite history is not durable across deploys, restarts, or free-instance spin-down. Use Render Postgres or another durable datastore when persistent production history is required.
+No API key is placed in frontend build variables or browser storage. \`VITE_API_BASE_URL\` is public configuration only.
 
 ## CI
 
-GitHub Actions performs Python compilation/tests, frontend tests/build, dependency auditing and secret scanning. CI #48 is the current green baseline.
+GitHub Actions provides blocking gates for Python compilation/full tests, dependency consistency + \`pip-audit\`, frontend tests/build, \`npm audit\`, repository+history secret scanning, and OpenAPI contract smoke validation.
 
-## Free-hosting limitation
+The repository currently has no \`package-lock.json\`. CI and Render therefore use \`npm install\` only as a fallback. Once a lockfile is generated and committed in an environment with registry access, both automatically use \`npm ci\`.
 
-Render's free filesystem is ephemeral, so SQLite data is not durable across restarts/redeploys. A managed persistent database is required for durable production history.
+## External verification
 
-## Status
-
-Model-release automation is **VERIFIED** by workflow #16. External deployment remains **PENDING** until Render health/readiness is actually observed to succeed.
+Render/production PostgreSQL/browser E2E and live provider OAuth must remain explicitly not verified until observed in their real environments.

@@ -14,6 +14,8 @@ services:
           property: connectionString
       - key: IESP_SESSION_SECURE
         value: "true"
+      - key: IESP_SESSION_SAMESITE
+        value: lax
       - key: IESP_ALLOWED_ORIGINS
         fromService:
           name: iesp-frontend
@@ -21,6 +23,8 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       - key: IESP_MAX_REQUEST_BYTES
         value: "2500000"
+      - key: IESP_MAX_EMAIL_BYTES
+        value: "2000000"
       - key: IESP_SECURITY_CONFIG
         value: configs/security.yaml
       - key: IESP_PHISHING_ARTIFACT
@@ -39,7 +43,10 @@ services:
     name: iesp-frontend
     runtime: static
     staticPublishPath: ./frontend/dist
-    buildCommand: cd frontend && npm install --no-audit --no-fund && npm run build
+    buildCommand: >-
+      cd frontend &&
+      if test -f package-lock.json; then npm ci; else npm install --no-audit --no-fund; fi &&
+      npm run build
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
@@ -57,5 +64,11 @@ services:
         name: Referrer-Policy
         value: no-referrer
       - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=()"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000; includeSubDomains"
+      - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; connect-src 'self' https://*.onrender.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+        value: "default-src 'self'; connect-src 'self' https://*.onrender.com; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"

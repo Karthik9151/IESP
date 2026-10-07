@@ -8,3 +8,4 @@ scikit-learn==1.6.1
 joblib==1.4.2
 vaderSentiment==3.3.2
 psycopg[binary]==3.2.10
+python-multipart==0.0.32
