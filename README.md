@@ -122,7 +122,7 @@ Production backend: `https://iesp-backend.onrender.com`
 
 The Render service is named `iesp-home`, while its existing Render-managed subdomain remains `iesp-frontend.onrender.com`. This does not affect application behavior.
 
-For a college demonstration, use the production frontend URL above and a prepared `.eml` sample so the flow is repeatable.
+For a repeatable demonstration, use the production frontend URL above and a prepared `.eml` sample.
 
 ## .eml demo workflow
 
