@@ -19,6 +19,8 @@ def require_api_key(settings: Settings):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"code": "AUTH_REQUIRED", "message": "Valid API key required."})
         return AuthorizationContext(True)
 
+    return dependency
+
 def authorize_analysis(context: AuthorizationContext) -> None:
     if not context.authenticated or context.role != "analysis":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"code": "FORBIDDEN", "message": "Not authorized for analysis."})
