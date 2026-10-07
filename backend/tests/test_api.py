@@ -230,3 +230,58 @@ def test_expired_session_is_invalid(tmp_path):
     response = client.get("/api/v1/auth/me")
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "SESSION_INVALID"
+
+
+def test_eml_multipart_attachment_and_suspicious_url_workflow(tmp_path):
+    client, _ = make_file_client(tmp_path)
+    register(client)
+    boundary = "iesp-boundary"
+    raw = (
+        f"From: Sender <sender@example.com>\r\n"
+        f"To: user@example.com\r\n"
+        f"Subject: Multipart security test\r\n"
+        f"Message-ID: <m-multipart@example.com>\r\n"
+        f"MIME-Version: 1.0\r\n"
+        f"Content-Type: multipart/alternative; boundary=\"{boundary}\"\r\n"
+        f"\r\n"
+        f"--{boundary}\r\n"
+        f"Content-Type: text/plain; charset=utf-8\r\n\r\n"
+        f"Visit http://127.0.0.1:8080/admin\r\n"
+        f"--{boundary}\r\n"
+        f"Content-Type: text/html; charset=utf-8\r\n\r\n"
+        f"<html><body><a href=\"http://127.0.0.1:8080/admin\">Review</a></body></html>\r\n"
+        f"--{boundary}\r\n"
+        f"Content-Type: application/pdf\r\n"
+        f"Content-Disposition: attachment; filename=\"../../invoice.pdf.exe\"\r\n\r\n"
+        f"not-executed-payload\r\n"
+        f"--{boundary}--\r\n"
+    ).encode("utf-8")
+    response = client.post(
+        "/api/v1/analyze/eml",
+        files={"file": ("multipart.eml", raw, "message/rfc822")},
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["email"]["message_id"] == "m-multipart@example.com"
+    reason_codes = {reason["code"] for reason in data["security"]["reasons"]}
+    assert "SSRF_SENSITIVE_DESTINATION" in reason_codes
+    assert "DANGEROUS_EXTENSION" in reason_codes
+    assert "DOUBLE_EXTENSION" in reason_codes
+
+
+def test_eml_malformed_headers_and_mime_fail_closed(tmp_path):
+    client, _ = make_file_client(tmp_path)
+    register(client)
+    malformed = (
+        b"From: Sender <sender@example.com>\r\n"
+        b"To: user@example.com\r\n"
+        b"Bad Header Name: value\r\n"
+        b"\r\n"
+        b"body\r\n"
+    )
+    response = client.post(
+        "/api/v1/analyze/eml",
+        files={"file": ("malformed.eml", malformed, "message/rfc822")},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "EMAIL_PARSE_ERROR"
