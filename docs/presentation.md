@@ -1,6 +1,6 @@
 # IESP Presentation / Demo Flow
 
-## 5–8 minute college demo
+## Demonstration Flow
 
 ### 1. Problem — 30 seconds
 Email security is not only about phishing classification. A useful platform must also inspect untrusted headers, URLs, HTML, and attachments safely while giving analysts understandable reasons for the decision.
@@ -59,17 +59,17 @@ Do not claim that the application performs live URL reputation checks, attachmen
 ### 6. OAuth demonstration — optional
 Gmail and Microsoft provider routes, state binding, PKCE, encrypted provider-token storage, and read-only adapters are implemented. Live provider consent requires valid provider-console credentials and matching redirect URIs, so demonstrate a real provider connection only when that environment has been configured and tested.
 
-### 7. Testing / deployment — 45 seconds
+### 7. Testing / deployment
 Mention the repository CI gates: backend/security tests, frontend tests/build, dependency audits, secret scanning, API contract validation, PostgreSQL integration, and Docker verification.
 
 Render hosts the backend, frontend, and PostgreSQL resources from the repository deployment configuration.
 
-### 8. Limitations / future work — 30 seconds
+### 8. Limitations / future work
 - live URL reputation and network detonation are outside the current safe analysis boundary
 - attachments are metadata-only
 - P1/P2/P3 are project proxy labels, not human-annotated urgency
 - distributed rate limiting and production observability require further infrastructure
 - live Gmail/Microsoft consent depends on external provider configuration
 
-## Viva one-line explanation
+## One-line explanation
 > IESP is a security-first email analysis platform that combines deterministic security rules with phishing ML evidence, persists explainable results, and deliberately prevents untrusted email content from becoming executable application content.
