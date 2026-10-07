@@ -144,7 +144,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         return StatsResponse(**service.stats())
 
     @app.get("/api/v1/recent")
-    async def recent(limit: int = 20, context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
+    async def recent(context: Annotated[AuthorizationContext, Depends(require_api_key(settings))], limit: int = 20):
         authorize_analysis(context)
         if limit < 1 or limit > 100:
             raise HTTPException(status_code=422, detail={"code": "INVALID_LIMIT", "message": "Limit must be 1-100."})
