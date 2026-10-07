@@ -1,20 +1,74 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
+import LoginPage from './features/auth/LoginPage'
+import AnalyzePage from './features/analysis/AnalyzePage'
+import DashboardPage from './features/dashboard/DashboardPage'
+import AnalysisDetailPage from './features/history/AnalysisDetailPage'
+import HistoryPage from './features/history/HistoryPage'
+import ReportsPage from './features/reports/ReportsPage'
+import SettingsPage from './features/settings/SettingsPage'
 
-const empty={total:0,phishing:0,suspicious:0,non_phishing:0,review_required:0}
-const starter={message_id:'demo-message',sender:'security@example.com',recipients:['analyst@example.com'],subject:'Example email for analysis',text_body:'Please review this message and respond today.',html_body:'',headers:{},attachments:[]}
+const NAV = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'analyze', label: 'Analyze' },
+  { id: 'history', label: 'History' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'settings', label: 'Settings' },
+]
 
-function Card({label,value}){return <div className="stat-card"><span>{label}</span><strong>{value}</strong></div>}
-function Result({data}){if(!data)return <section className="panel empty"><h2>Analysis result</h2><p>Submit an email to see the security decision.</p></section>;const s=data.security;return <section className="panel"><div className="panel-heading"><div><span className="eyebrow">Security decision</span><h2>{s.classification}</h2></div><span className="badge">{s.classification}</span></div><div className="result-grid"><div><span className="label">Risk score</span><strong>{s.risk_score}/100</strong></div><div><span className="label">Model score</span><span>{s.model_score===null?'Unavailable':s.model_score+' (decision margin)'}</span></div><div><span className="label">Model version</span><span>{data.model_info.model_version}</span></div><div><span className="label">Policy</span><span>{data.model_info.policy_version}</span></div></div><h3>Security reasons</h3>{s.reasons?.length?<div className="findings">{s.reasons.map((r,i)=><article className="finding" key={r.code+i}><strong>{r.code}</strong><span>{r.severity}</span><p>{r.message}</p></article>)}</div>:<p className="muted">No additional deterministic findings.</p>}<div className="priority-box"><span className="eyebrow">Priority</span><strong>{data.priority?.label||'SUPPRESSED'}</strong><p>Priority is shown only when the security policy permits it.</p></div></section>}
+export default function App() {
+  const [session, setSession] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [page, setPage] = useState('overview')
+  const [detailId, setDetailId] = useState(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-export default function App(){
- const [session,setSession]=useState(null),[auth,setAuth]=useState({email:'',password:''}),[form,setForm]=useState(starter),[stats,setStats]=useState(empty),[recent,setRecent]=useState([]),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('')
- async function load(){try{const [s,r]=await Promise.all([api.stats(),api.recent()]);setStats(s);setRecent(r.items||[])}catch(e){setError(e.message)}}
- useEffect(()=>{api.me().then(setSession).catch(()=>setSession(null))},[])
- useEffect(()=>{if(session)load()},[session])
- async function login(e){e.preventDefault();setError('');try{setSession(await api.login(auth.email,auth.password))}catch(x){setError(x.message)}}
- async function register(){setError('');try{setSession(await api.register(auth.email,auth.password))}catch(x){setError(x.message)}}
- async function analyze(e){e.preventDefault();setBusy(true);setError('');try{setResult(await api.analyze(form));await load()}catch(x){setError(x.message)}finally{setBusy(false)}}
- if(!session)return <div className="shell auth-shell"><section className="panel auth-card"><span className="eyebrow">IESP secure workspace</span><h1>Sign in to email security</h1><p>Analysis data is stored inside your authenticated workspace. No browser API key is required.</p><form onSubmit={login}><label>Email<input type="email" required value={auth.email} onChange={e=>setAuth({...auth,email:e.target.value})}/></label><label>Password<input type="password" required minLength="10" value={auth.password} onChange={e=>setAuth({...auth,password:e.target.value})}/></label>{error&&<div className="error" role="alert">{error}</div>}<button className="primary" disabled={busy}>Sign in</button><button type="button" className="secondary" onClick={register}>Create workspace</button></form></section></div>
- return <div className="shell"><header className="topbar"><div><strong>IESP</strong><span className="brand-sub">Intelligent Email Security Platform</span></div><div><span>{session.user.email}</span><button className="secondary" onClick={async()=>{await api.logout();setSession(null)}}>Logout</button></div></header><main className="layout"><aside className="sidebar"><span className="eyebrow">Workspace</span><h3>{session.workspace.name}</h3><p>Security analysis and evidence for your authorized workspace.</p><nav><a href="#overview">Overview</a><a href="#analyze">Analyze</a><a href="#history">History</a></nav></aside><div className="content"><section className="hero" id="overview"><span className="eyebrow">Security operations</span><h1>Email threat triage</h1><p>Analyze untrusted email content without rendering or executing it.</p></section><section className="stats"><Card label="Total analyzed" value={stats.total}/><Card label="Phishing" value={stats.phishing}/><Card label="Suspicious" value={stats.suspicious}/><Card label="Review required" value={stats.review_required}/></section><div className="work-grid" id="analyze"><form className="panel" onSubmit={analyze}><div className="panel-heading"><div><span className="eyebrow">Analyze</span><h2>Inspect an email</h2></div></div><label>Message ID<input required value={form.message_id} onChange={e=>setForm({...form,message_id:e.target.value})}/></label><label>Sender<input required value={form.sender} onChange={e=>setForm({...form,sender:e.target.value})}/></label><label>Recipients<input required value={form.recipients.join(', ')} onChange={e=>setForm({...form,recipients:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})}/></label><label>Subject<input value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}/></label><label>Plain-text body<textarea rows="10" value={form.text_body} onChange={e=>setForm({...form,text_body:e.target.value})}/></label><label>HTML body — structural analysis only<textarea rows="6" value={form.html_body} onChange={e=>setForm({...form,html_body:e.target.value})}/></label>{error&&<div className="error" role="alert">{error}</div>}<button className="primary" disabled={busy}>{busy?'Analyzing…':'Analyze email'}</button></form><Result data={result}/></div><section className="panel" id="history"><div className="panel-heading"><h2>Recent analyses</h2></div>{recent.length?<div className="table-wrap"><table><thead><tr><th>Message</th><th>Security</th><th>Priority</th><th>Risk</th><th>Created</th></tr></thead><tbody>{recent.map(x=><tr key={x.request_id+x.message_id}><td>{x.message_id}</td><td>{x.classification}</td><td>{x.priority||'—'}</td><td>{x.risk_score}</td><td>{new Date(x.created_at).toLocaleString()}</td></tr>)}</tbody></table></div>:<p className="muted">No analyses yet.</p>}</section></div></main></div>
+  useEffect(() => {
+    api.me().then(setSession).catch(() => setSession(null)).finally(() => setAuthLoading(false))
+  }, [])
+
+  if (authLoading) return <main className="auth-shell"><div className="loading-panel panel" role="status">Checking your session…</div></main>
+  if (!session) return <LoginPage onAuthenticated={setSession} />
+
+  const navigate = (nextPage) => {
+    setDetailId(null)
+    setPage(nextPage)
+  }
+  const openAnalysis = (messageId) => {
+    setDetailId(messageId)
+    setPage('detail')
+  }
+  const analyzed = () => setRefreshKey((value) => value + 1)
+
+  const logout = async () => {
+    try { await api.logout() } finally { setSession(null); setPage('overview'); setDetailId(null) }
+  }
+
+  const currentPage = page === 'detail' ? 'history' : page
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="topbar-brand"><div className="brand-mark small">IESP</div><div><strong>IESP</strong><span>Intelligent Email Security Platform</span></div></div>
+        <div className="topbar-actions"><span className="desktop-user">{session.user.email}</span><button className="button secondary compact-button" onClick={logout}>Logout</button></div>
+      </header>
+      <div className="app-layout">
+        <aside className="sidebar">
+          <div className="workspace-card"><span className="eyebrow">Workspace</span><strong>{session.workspace.name}</strong><span className="microcopy">{session.workspace.role}</span></div>
+          <nav className="primary-nav" aria-label="Primary navigation">
+            {NAV.map((item) => <button key={item.id} className={currentPage === item.id ? 'active' : ''} aria-current={currentPage === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>{item.label}</button>)}
+          </nav>
+          <div className="sidebar-note"><span className="eyebrow">Trust boundary</span><p>Email bodies, HTML, URLs, and attachment names are treated as untrusted analysis data.</p></div>
+        </aside>
+        <main className="content-shell">
+          {page === 'overview' && <DashboardPage refreshKey={refreshKey} onOpenAnalysis={openAnalysis} />}
+          {page === 'analyze' && <AnalyzePage onAnalyzed={analyzed} />}
+          {page === 'history' && <HistoryPage onOpenAnalysis={openAnalysis} />}
+          {page === 'detail' && <AnalysisDetailPage messageId={detailId} onBack={() => navigate('history')} />}
+          {page === 'reports' && <ReportsPage />}
+          {page === 'settings' && <SettingsPage session={session} />}
+        </main>
+      </div>
+    </div>
+  )
 }
