@@ -51,3 +51,24 @@ test('scans frontend source for unsafe HTML rendering, navigation, and browser c
     assert.equal(externalImage.test(source), false, `${file} contains an external image URL`)
   }
 })
+
+
+test('does not label model margins as probabilities and exposes the required result metadata', async () => {
+  const fs = await import('node:fs/promises')
+  const path = await import('node:path')
+  const file = path.resolve(new URL('../src/features/analysis/ResultPanel.jsx', import.meta.url).pathname)
+  const source = await fs.readFile(file, 'utf8')
+  for (const label of [
+    'Security verdict',
+    'Policy risk score',
+    'not a probability',
+    'Model decision margin',
+    'Security reasons',
+    'Priority assessment',
+    'Model metadata',
+    'Analysis time',
+    'Request ID',
+  ]) assert.equal(source.includes(label), true, `missing result label: ${label}`)
+  const probabilityMentions = source.match(/probability/gi) || []
+  assert.equal(probabilityMentions.length, 1)
+})
