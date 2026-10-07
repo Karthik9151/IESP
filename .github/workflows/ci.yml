@@ -14,8 +14,8 @@ jobs:
     name: Backend tests and security
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install dependencies
@@ -33,8 +33,8 @@ jobs:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install dependencies
@@ -52,19 +52,14 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
       - name: Install dependencies
         shell: bash
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo "package-lock.json is not present; using npm install until a lockfile is committed."
-            npm install --no-audit --no-fund
-          fi
+          npm install --no-audit --no-fund
       - name: Frontend tests
         run: npm test
       - name: Production build
@@ -76,65 +71,221 @@ jobs:
     name: Secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Scan repository and Git history
-        uses: gacts/gitleaks@v1
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  frontend-lockfile:
+    name: Bootstrap frontend lockfile
+    if: github.event_name == 'push' && github.ref == 'refs/heads/furnished-design'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
         with:
-          version: latest
-          path: .
+          fetch-depth: 1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+      - name: Generate deterministic lockfile when missing
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json already exists."
+            exit 0
+          fi
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          test -s package-lock.json
+      - name: Commit lockfile
+        run: |
+          if [ -f frontend/package-lock.json ] && git ls-files --error-unmatch frontend/package-lock.json >/dev/null 2>&1; then
+            echo "package-lock.json is already tracked."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          git diff --cached --quiet && { echo "No lockfile change."; exit 0; }
+          git commit -m "build: add deterministic frontend lockfile"
+          git push origin HEAD:${GITHUB_REF_NAME}
 
   contract:
-    name: API contract smoke check
+    name: API contract validation
     runs-on: ubuntu-latest
     needs: [backend, frontend]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install API dependencies
         run: python -m pip install -r requirements-api.txt
-      - name: Verify OpenAPI contract surface
+      - name: Validate generated OpenAPI contract
         run: |
           python - <<'PY'
           from backend.app.main import app
 
           document = app.openapi()
           paths = document["paths"]
-          required = {
-              "/health", "/ready",
-              "/api/v1/auth/register", "/api/v1/auth/login",
-              "/api/v1/auth/logout", "/api/v1/auth/me",
-              "/api/v1/analyze", "/api/v1/analyze/raw", "/api/v1/analyze/eml",
-              "/api/v1/stats", "/api/v1/recent", "/api/v1/history",
-              "/api/v1/analysis/{message_id}",
-              "/api/v1/reports/summary", "/api/v1/reports/export",
+          components = document["components"]["schemas"]
+          security_schemes = document["components"]["securitySchemes"]
+
+          required_paths = {
+              "/health": ("get", "200", "HealthResponse", False),
+              "/ready": ("get", "200", "ReadyResponse", False),
+              "/api/v1/auth/register": ("post", "201", "SessionResponse", False),
+              "/api/v1/auth/login": ("post", "200", "SessionResponse", False),
+              "/api/v1/auth/logout": ("post", "204", None, False),
+              "/api/v1/auth/me": ("get", "200", "SessionResponse", True),
+              "/api/v1/analyze": ("post", "200", "AnalysisResponse", True),
+              "/api/v1/analyze/raw": ("post", "200", "AnalysisResponse", True),
+              "/api/v1/analyze/eml": ("post", "200", "AnalysisResponse", True),
+              "/api/v1/stats": ("get", "200", "StatsResponse", True),
+              "/api/v1/recent": ("get", "200", "PaginatedAnalysisResponse", True),
+              "/api/v1/history": ("get", "200", "PaginatedAnalysisResponse", True),
+              "/api/v1/analysis/{message_id}": ("get", "200", "AnalysisResponse", True),
+              "/api/v1/reports/summary": ("get", "200", "ReportSummaryResponse", True),
+              "/api/v1/reports/export": ("get", "200", None, True),
           }
-          missing = sorted(required - set(paths))
-          assert not missing, f"Missing API paths: {missing}"
 
-          def response_schema(path, status):
-              operation = next(iter(paths[path].values()))
-              response = operation["responses"][status]
-              content = response.get("content", {})
-              assert "application/json" in content, f"{path} {status} has no JSON response schema"
-              return content["application/json"].get("schema", {})
+          def operation(path, method):
+              assert path in paths, f"Missing API path: {path}"
+              assert method in paths[path], f"Missing {method.upper()} operation for {path}"
+              return paths[path][method]
 
-          analyze_schema = response_schema("/api/v1/analyze", "200")
-          assert analyze_schema.get("$ref") or analyze_schema.get("type") == "object", "Analyze response schema is missing"
+          def ref_name(schema):
+              ref = (schema or {}).get("$ref", "")
+              return ref.rsplit("/", 1)[-1] if ref.startswith("#/components/schemas/") else None
 
-          history_schema = response_schema("/api/v1/history", "200")
-          assert history_schema.get("$ref") or history_schema.get("type") == "object", "History response schema is missing"
+          def response(op, status):
+              assert status in op["responses"], f"Missing {status} response"
+              return op["responses"][status]
 
-          error_refs = []
-          for path, operations in paths.items():
-              for operation in operations.values():
-                  schema = operation.get("responses", {}).get("401", {}).get("content", {}).get("application/json", {}).get("schema")
-                  if schema:
-                      error_refs.append(schema)
-          assert error_refs, "No documented 401 JSON error contract found"
+          def assert_model(op, status, model_name):
+              content = response(op, status).get("content", {})
+              schema = content.get("application/json", {}).get("schema", {})
+              assert ref_name(schema) == model_name, f"{status} response does not reference {model_name}"
+              assert model_name in components, f"Missing component schema {model_name}"
 
-          print("OpenAPI contract surface verified.")
+          def assert_error(op, status):
+              assert_model(op, status, "ErrorResponse")
+              body = components["ErrorResponse"]
+              assert set(body["required"]) >= {"error"}
+              nested = body["properties"]["error"]
+              assert ref_name(nested) == "ErrorBody"
+              assert set(components["ErrorBody"]["required"]) >= {"code", "message", "request_id"}
+
+          cookie_names = [
+              name for name, scheme in security_schemes.items()
+              if scheme.get("type") == "apiKey" and scheme.get("in") == "cookie"
+          ]
+          assert len(cookie_names) == 1, f"Expected exactly one cookie security scheme, got {cookie_names}"
+          cookie_scheme = cookie_names[0]
+          assert security_schemes[cookie_scheme]["name"] == "iesp_session"
+
+          for path, (method, success_status, success_model, protected) in required_paths.items():
+              op = operation(path, method)
+              if success_model:
+                  assert_model(op, success_status, success_model)
+              if protected:
+                  security = op.get("security", [])
+                  assert {cookie_scheme: []} in security, f"{path} is missing session-cookie security"
+                  assert_error(op, "401")
+
+          ready = operation("/ready", "get")
+          assert_model(ready, "503", "ReadyResponse")
+
+          register = operation("/api/v1/auth/register", "post")
+          assert_error(register, "409")
+          assert_error(register, "422")
+
+          login = operation("/api/v1/auth/login", "post")
+          assert_error(login, "401")
+          assert_error(login, "422")
+
+          for path in ("/api/v1/analyze", "/api/v1/analyze/raw", "/api/v1/analyze/eml"):
+              op = operation(path, "post")
+              assert_error(op, "413")
+              assert_error(op, "422")
+              assert_error(op, "429")
+
+          for path in ("/api/v1/history", "/api/v1/recent"):
+              assert_error(operation(path, "get"), "422")
+
+          assert_error(operation("/api/v1/analysis/{message_id}", "get"), "404")
+
+          export = operation("/api/v1/reports/export", "get")
+          content = response(export, "200").get("content", {})
+          assert ref_name(content["application/json"]["schema"]) == "ReportExportResponse"
+          assert content["text/csv"]["schema"].get("type") == "string"
+          assert "ReportExportResponse" in components
+
+          required_components = {
+              "ErrorResponse", "ErrorBody", "SessionResponse", "WorkspaceResponse",
+              "AnalysisResponse", "SecurityResponse", "PaginatedAnalysisResponse",
+              "StatsResponse", "ReportSummaryResponse", "ReportExportResponse",
+              "HealthResponse", "ReadyResponse",
+          }
+          assert required_components <= set(components), "One or more required component schemas are missing"
+
+          analysis_required = set(components["AnalysisResponse"]["required"])
+          assert {"message_id", "request_id", "analyzed_at", "email", "security", "model_info"} <= analysis_required
+
+          security_required = set(components["SecurityResponse"]["required"])
+          assert {"classification", "risk_score", "model_score_kind", "reasons"} <= security_required
+
+          pagination_required = set(components["PaginatedAnalysisResponse"]["required"])
+          assert {"items", "total", "page", "page_size", "pages"} <= pagination_required
+
+          report_required = set(components["ReportSummaryResponse"]["required"])
+          assert {"generated_at", "stats", "threat_distribution", "high_risk_items"} <= report_required
+
+          export_required = set(components["ReportExportResponse"]["required"])
+          assert {"generated_at", "items"} <= export_required
+
+          print("Generated OpenAPI contract validated: routes, success schemas, error schemas, cookie authentication, pagination, analysis, and reports.")
           PY
+
+  postgres:
+    name: PostgreSQL integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: iesp
+          POSTGRES_PASSWORD: iesp-ci-password
+          POSTGRES_DB: iesp_test
+        options: >-
+          --health-cmd="pg_isready -U iesp -d iesp_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install API dependencies
+        run: python -m pip install -r requirements-api.txt -r requirements-ml.txt
+      - name: Run real PostgreSQL integration tests
+        env:
+          TEST_DATABASE_URL: postgresql://iesp:iesp-ci-password@localhost:5432/iesp_test
+        run: pytest -q tests/integration/test_postgres_repository.py -ra
+
+  docker:
+    name: Docker image verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build backend image
+        run: docker build -t iesp-backend:ci .
+      - name: Build frontend image
+        run: docker build -t iesp-frontend:ci ./frontend
