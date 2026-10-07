@@ -82,7 +82,7 @@ jobs:
       - name: Scan repository and Git history
         uses: gitleaks/gitleaks-action@v3
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
 
   contract:
     name: API contract smoke check
@@ -99,7 +99,9 @@ jobs:
         run: |
           python - <<'PY'
           from backend.app.main import app
-          paths = app.openapi()["paths"]
+
+          document = app.openapi()
+          paths = document["paths"]
           required = {
               "/health", "/ready",
               "/api/v1/auth/register", "/api/v1/auth/login",
@@ -111,8 +113,27 @@ jobs:
           }
           missing = sorted(required - set(paths))
           assert not missing, f"Missing API paths: {missing}"
-          schemas = app.openapi()["components"]["schemas"]
-          assert "ErrorResponse" in schemas
-          assert "AnalysisResponse" in schemas
+
+          def response_schema(path, status):
+              operation = next(iter(paths[path].values()))
+              response = operation["responses"][status]
+              content = response.get("content", {})
+              assert "application/json" in content, f"{path} {status} has no JSON response schema"
+              return content["application/json"].get("schema", {})
+
+          analyze_schema = response_schema("/api/v1/analyze", "200")
+          assert analyze_schema.get("$ref") or analyze_schema.get("type") == "object", "Analyze response schema is missing"
+
+          history_schema = response_schema("/api/v1/history", "200")
+          assert history_schema.get("$ref") or history_schema.get("type") == "object", "History response schema is missing"
+
+          error_refs = []
+          for path, operations in paths.items():
+              for operation in operations.values():
+                  schema = operation.get("responses", {}).get("401", {}).get("content", {}).get("application/json", {}).get("schema")
+                  if schema:
+                      error_refs.append(schema)
+          assert error_refs, "No documented 401 JSON error contract found"
+
           print("OpenAPI contract surface verified.")
           PY
