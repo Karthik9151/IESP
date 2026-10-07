@@ -46,7 +46,7 @@
 
 ## Fingerprints
 
-Project:
+Accepted dataset:
 
 ```text
 34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582
