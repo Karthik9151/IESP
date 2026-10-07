@@ -80,9 +80,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Scan repository and Git history
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        uses: gacts/gitleaks@v1
+        with:
+          version: latest
+          path: .
 
   contract:
     name: API contract smoke check
