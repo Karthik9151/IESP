@@ -285,3 +285,37 @@ def test_eml_malformed_headers_and_mime_fail_closed(tmp_path):
     )
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "EMAIL_PARSE_ERROR"
+
+
+def test_production_security_headers_and_session_cookie_flags(tmp_path):
+    config = {"require_phishing_model": False}
+    repo = SQLiteAnalysisRepository(tmp_path / "production-config.sqlite3")
+    service = AnalysisService(SecurityEngine(config), repo)
+    settings = Settings(
+        environment="production",
+        allowed_origins=("https://iesp.example",),
+        database_url="postgresql://example.invalid/iesp",
+        database_path=tmp_path / "production-config.sqlite3",
+        session_cookie_secure=True,
+        session_cookie_samesite="lax",
+    )
+    client = TestClient(create_app(settings, service))
+
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.headers["X-Content-Type-Options"] == "nosniff"
+    assert health.headers["X-Frame-Options"] == "DENY"
+    assert health.headers["Referrer-Policy"] == "no-referrer"
+    assert health.headers["Permissions-Policy"] == "camera=(), microphone=(), geolocation=()"
+    assert "default-src 'none'" in health.headers["Content-Security-Policy"]
+    assert "max-age=31536000" in health.headers["Strict-Transport-Security"]
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "secure@example.com", "password": "a-strong-test-password"},
+    )
+    assert response.status_code == 201
+    cookie = response.headers["set-cookie"].lower()
+    assert "secure" in cookie
+    assert "httponly" in cookie
+    assert "samesite=lax" in cookie
