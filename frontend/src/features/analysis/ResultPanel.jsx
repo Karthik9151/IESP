@@ -1,48 +1,124 @@
-import { securityDescription, stateClass } from '../../lib/security'
+import { securityDescription, verdictMeta, defangText, isPriorityEligible } from '../../lib/security'
 
-function CopyableValue({ children }) {
-  return <span className="break-value">{children || '—'}</span>
+async function copySafe(text, onDone) {
+  try {
+    await navigator.clipboard.writeText(defangText(text))
+    onDone?.()
+  } catch {}
 }
 
-export default function ResultPanel({ data }) {
-  if (!data) {
-    return (
-      <section className="panel result-empty" aria-labelledby="result-heading">
-        <span className="eyebrow">Security result</span>
-        <h2 id="result-heading">Waiting for an analysis</h2>
-        <p>Submit a message or upload an .eml file to see the security decision, evidence, and model metadata.</p>
-      </section>
-    )
-  }
-  const security = data.security
-  const classificationClass = stateClass(security.classification)
-  const modelScoreAvailable = security.model_score !== null && security.model_score !== undefined
+function SafePreview({ preview }) {
+  if (!preview) return <div className="safe-content-note"><strong>Stored analysis view</strong><span>The current API contract stores analysis metadata/results, not raw message bodies. Re-opened History records therefore do not expose original email content.</span></div>
+  const raw = preview.raw || preview.text_body || ''
+  const display = defangText(raw)
+  const headers = preview.raw ? raw.split(/\r?\n\r?\n/, 1)[0] : ''
+  const body = preview.raw ? raw.split(/\r?\n\r?\n/).slice(1).join('\n\n') : preview.text_body || ''
+  const files = preview.attachments || []
   return (
-    <section className="panel result-panel" aria-labelledby="result-heading">
-      <div className="result-hero">
-        <div><span className="eyebrow">Security verdict</span><h2 id="result-heading">{security.classification}</h2><p className="result-description">{securityDescription(security.classification)}</p></div>
-        <span className={'status-badge ' + classificationClass}>{security.classification}</span>
+    <section className="panel-inner safe-view" aria-labelledby="safe-view-heading">
+      <div className="section-title-row"><div><span className="eyebrow">Untrusted content</span><h3 id="safe-view-heading">Safe view of email</h3></div><span className="safe-badge">NEVER EXECUTED</span></div>
+      <div className="safe-note">HTML is never rendered. URLs are defanged and are not clickable.</div>
+      {headers && <div className="safe-section"><div className="safe-section-head"><strong>Headers</strong><button className="text-action" onClick={() => copySafe(headers)}>Copy safely</button></div><pre className="mono-box">{defangText(headers)}</pre></div>}
+      <div className="safe-section"><div className="safe-section-head"><strong>Body</strong><button className="text-action" onClick={() => copySafe(body)}>Copy safely</button></div><pre className="mono-box">{display || 'No text body supplied.'}</pre></div>
+      {files.length ? <div className="attachment-grid">{files.map((file, index) => <div className="attachment-item" key={index}><span>▧</span><div><strong>{file.filename}</strong><small>{file.content_type || 'unknown type'} · {file.size_bytes ?? 'size unavailable'} bytes</small></div><em>NEVER EXECUTED</em></div>)}</div> : null}
+    </section>
+  )
+}
+
+function RiskReason({ reason }) {
+  const severity = String(reason.severity || 'info').toLowerCase()
+  return (
+    <article className="risk-reason">
+      <div className="risk-reason-icon" aria-hidden="true">{severity === 'critical' || severity === 'high' ? '!' : severity === 'medium' ? '•' : 'i'}</div>
+      <div className="risk-reason-body">
+        <div className="risk-reason-head"><strong>{reason.code}</strong><span className={'severity-chip ' + severity}>{reason.severity}</span></div>
+        <p>{reason.message}</p>
+        <details><summary>What this means</summary><p>{reason.category || 'Security signal'} is a structured indicator used by the configured policy. Evidence is shown as supplied by the analysis engine.</p></details>
       </div>
-      <div className="score-layout">
-        <div className="risk-score-card"><span className="label">Policy risk score</span><strong>{Math.round(security.risk_score)}/100</strong><progress max="100" value={security.risk_score} aria-label={'Policy risk score ' + Math.round(security.risk_score) + ' out of 100'} /><span className="microcopy">Application risk/policy score, not a probability.</span></div>
-        <div className="model-score-card"><span className="label">Model evidence</span><strong>{modelScoreAvailable ? String(security.model_score) : 'Unavailable'}</strong><span>{modelScoreAvailable ? 'Model decision margin' : 'Phishing model evidence unavailable'}</span></div>
+    </article>
+  )
+}
+
+function EvidenceGauge({ value }) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return <div className="evidence-empty">No phishing-model margin was returned for this analysis.</div>
+  const strength = Math.min(1, Math.abs(numeric) / 5)
+  const rotation = -90 + strength * 180
+  return (
+    <div className="gauge-wrap">
+      <div className="gauge" style={{ '--needle-rotation': rotation + 'deg' }} aria-label={'SVM ranking margin ' + numeric}>
+        <div className="gauge-arc"/><div className="gauge-needle"/><div className="gauge-center">●</div>
       </div>
-      <div className="detail-grid">
-        <div><span className="label">Sender</span><CopyableValue>{data.email?.sender}</CopyableValue></div>
-        <div><span className="label">Recipients</span><CopyableValue>{data.email?.recipients?.join(', ')}</CopyableValue></div>
-        <div className="detail-wide"><span className="label">Subject</span><CopyableValue>{data.email?.subject}</CopyableValue></div>
-        <div><span className="label">Analysis time</span><CopyableValue>{data.analyzed_at ? new Date(data.analyzed_at).toLocaleString() : '—'}</CopyableValue></div>
-        <div><span className="label">Request ID</span><CopyableValue>{data.request_id}</CopyableValue></div>
+      <div className="gauge-value"><strong>{String(value)}</strong><span>SVM decision margin</span></div>
+    </div>
+  )
+}
+
+export default function ResultPanel({ data, preview }) {
+  if (!data) {
+    return <section className="panel result-empty" aria-labelledby="result-heading"><div className="empty-illustration" aria-hidden="true">⌁</div><span className="eyebrow">Security result</span><h2 id="result-heading">Ready for inspection</h2><p>Run a scan to see the verdict, ranked reasons, model evidence, safe email view, and next actions.</p></section>
+  }
+
+  const security = data.security
+  const meta = verdictMeta(security.classification)
+  const eligible = isPriorityEligible(data)
+  const reasons = [...(security.reasons || [])]
+
+  return (
+    <section className="result-panel" aria-labelledby="result-heading">
+      <div className={'verdict-banner ' + meta.tone}>
+        <div className="verdict-icon" aria-hidden="true">{meta.icon}</div>
+        <div><span className="eyebrow">Security verdict</span><h2 id="result-heading">{meta.label}</h2><p>{securityDescription(security.classification)}</p></div>
+        <span className="verdict-label">{security.classification}</span>
       </div>
-      <section aria-labelledby="reasons-heading">
-        <div className="section-title-row"><div><span className="eyebrow">Evidence</span><h3 id="reasons-heading">Security reasons</h3></div><span className="microcopy">{security.reasons?.length || 0} findings</span></div>
-        {security.reasons?.length ? <div className="findings">{security.reasons.map((reason, index) => <article className="finding" key={reason.code + '-' + index}><div className="finding-top"><strong>{reason.code}</strong><span className={'severity ' + String(reason.severity).toLowerCase()}>{reason.severity}</span></div><p>{reason.message}</p>{reason.evidence && Object.keys(reason.evidence).length > 0 && <pre className="evidence">{JSON.stringify(reason.evidence, null, 2)}</pre>}</article>)}</div> : <p className="empty-inline">No additional deterministic findings were produced.</p>}
+
+      <div className="result-grid">
+        <section className="panel" aria-labelledby="why-heading">
+          <div className="section-title-row"><div><span className="eyebrow">Evidence</span><h3 id="why-heading">Why this verdict</h3></div><span className="microcopy">{reasons.length} signal{reasons.length === 1 ? '' : 's'}</span></div>
+          {reasons.length ? <div className="risk-reasons">{reasons.map((reason, index) => <RiskReason reason={reason} key={(reason.code || 'reason') + index}/>)}</div> : <div className="empty-inline">No additional deterministic findings were produced.</div>}
+        </section>
+
+        <section className="panel" aria-labelledby="evidence-heading">
+          <div className="section-title-row"><div><span className="eyebrow">ML evidence</span><h3 id="evidence-heading">Ranking strength</h3></div><span className="tooltip" title="This is the LinearSVC decision margin used for ranking, not a probability.">?</span></div>
+          <EvidenceGauge value={security.model_score} />
+          <p className="microcopy">A LinearSVC margin indicates relative evidence strength. It is not calibrated as a probability or confidence percentage.</p>
+        </section>
+
+        <section className="panel priority-card" aria-labelledby="priority-heading">
+          <div className="section-title-row"><div><span className="eyebrow">Priority</span><h3 id="priority-heading">Triage priority</h3></div>{eligible ? <span className="priority-chip p2">Proxy label</span> : <span className="lock-chip">LOCKED</span>}</div>
+          {eligible ? <><div className="priority-hero"><span className={'priority-chip ' + String(data.priority.label).toLowerCase()}>{data.priority.label}</span><strong>{data.priority.label === 'P1' ? 'Immediate attention' : data.priority.label === 'P2' ? 'Elevated attention' : 'Routine attention'}</strong></div><p>Priority was eligible because the security verdict is NON-PHISHING. These P1/P2/P3 labels are project proxy labels, not human-annotated urgency.</p></> : <div className="withheld"><span>▣</span><div><strong>Priority withheld – security review first</strong><p>Priority is never surfaced for PHISHING, SUSPICIOUS or REVIEW REQUIRED decisions.</p></div></div>}
+        </section>
+
+        <section className="panel" aria-labelledby="metadata-heading">
+          <div className="section-title-row"><div><span className="eyebrow">Traceability</span><h3 id="metadata-heading">Analysis record</h3></div></div>
+          <dl className="metadata-list">
+            <div><dt>Message ID</dt><dd className="mono-text">{data.message_id}</dd></div>
+            <div><dt>Request ID</dt><dd className="mono-text">{data.request_id}</dd></div>
+            <div><dt>Sender</dt><dd>{data.email?.sender || '—'}</dd></div>
+            <div><dt>Subject</dt><dd>{data.email?.subject || '—'}</dd></div>
+            <div><dt>Analysed</dt><dd>{data.analyzed_at ? new Date(data.analyzed_at).toLocaleString() : '—'}</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      <SafePreview preview={preview} />
+
+      <section className="panel" aria-labelledby="next-steps-heading">
+        <div className="section-title-row"><div><span className="eyebrow">Response</span><h3 id="next-steps-heading">Recommended next steps</h3></div></div>
+        <div className="next-steps">
+          {['Report the message through your normal reporting channel.', 'Delete or quarantine it if your workflow requires.', 'Verify with the sender through another trusted channel.'].map((item,index) => <label key={item} className="check-row"><input type="checkbox"/><span><strong>{index + 1}</strong>{item}</span></label>)}
+        </div>
       </section>
-      <div className="result-footer-grid">
-        <div className="priority-box"><span className="eyebrow">Priority assessment</span><strong>{data.priority?.label || 'SUPPRESSED'}</strong><p>{data.priority ? 'Priority model eligibility was satisfied after the security decision.' : 'Priority is intentionally not produced for this security state.'}</p></div>
-        <div className="metadata-box"><span className="eyebrow">Model metadata</span><dl><div><dt>Model</dt><dd>{data.model_info?.phishing || '—'}</dd></div><div><dt>Version</dt><dd>{data.model_info?.model_version || '—'}</dd></div><div><dt>Policy</dt><dd>{data.model_info?.policy_version || '—'}</dd></div></dl></div>
-      </div>
-      <div className="safe-content-note" role="note"><strong>Safe handling</strong><span>Submitted HTML is analyzed structurally and is never rendered as trusted DOM. URLs and attachments are not automatically opened or executed.</span></div>
+
+      <details className="panel advanced-panel">
+        <summary>Model &amp; policy metadata</summary>
+        <dl className="metadata-list metadata-grid">
+          <div><dt>Phishing model</dt><dd>{data.model_info?.phishing || '—'}</dd></div>
+          <div><dt>Priority model</dt><dd>{data.model_info?.priority || 'Not used for withheld states'}</dd></div>
+          <div><dt>Model version</dt><dd>{data.model_info?.model_version || '—'}</dd></div>
+          <div><dt>Policy version</dt><dd>{data.model_info?.policy_version || '—'}</dd></div>
+        </dl>
+      </details>
     </section>
   )
 }
