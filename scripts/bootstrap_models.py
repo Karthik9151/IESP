@@ -195,7 +195,7 @@ def main() -> int:
             "--host",
             "0.0.0.0",
             "--port",
-            "8000",
+            os.getenv("PORT", "8000"),
         ]
 
     os.execvp(command[0], command)
