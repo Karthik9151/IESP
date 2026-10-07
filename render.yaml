@@ -8,38 +8,38 @@ services:
     envVars:
       - key: IESP_ENVIRONMENT
         value: production
-      - key: IESP_AUTH_MODE
-        value: required
-      - key: IESP_API_KEY
-        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: iesp-db
+          property: connectionString
+      - key: IESP_SESSION_SECURE
+        value: "true"
       - key: IESP_ALLOWED_ORIGINS
         fromService:
           name: iesp-frontend
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       - key: IESP_MAX_REQUEST_BYTES
-        value: "1048576"
+        value: "2500000"
       - key: IESP_SECURITY_CONFIG
         value: configs/security.yaml
       - key: IESP_PHISHING_ARTIFACT
         value: models/phishing/phishing_pipeline.joblib
       - key: IESP_PRIORITY_ARTIFACT
         value: models/priority/priority_pipeline.joblib
-      - key: IESP_DATABASE_PATH
-        value: /app/data/iesp.sqlite3
-      - key: IESP_MODEL_OWNER
-        value: Karthik9151
-      - key: IESP_MODEL_REPO
-        value: IESP
-      - key: IESP_MODEL_RELEASE_TAG
-        value: models-v1
+
+  - type: pserv
+    name: iesp-db
+    plan: free
+    runtime: postgres
+    databaseName: iesp
+    user: iesp
 
   - type: web
     name: iesp-frontend
     runtime: static
     staticPublishPath: ./frontend/dist
-    autoDeployTrigger: checksPass
-    buildCommand: cd frontend && npm install --no-audit --no-fund && npm run build
+    buildCommand: cd frontend && npm ci && npm run build
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
