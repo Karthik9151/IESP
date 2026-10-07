@@ -135,7 +135,7 @@ def test_safe_internal_error_does_not_leak_details():
         def analyze(self, *args):
             raise RuntimeError("/secret/internal/path")
     settings = Settings(environment="test", auth_mode="required", api_key=key)
-    broken = TestClient(create_app(settings, BrokenService()))
+    broken = TestClient(create_app(settings, BrokenService()), raise_server_exceptions=False)
     response = broken.post("/api/v1/analyze", json=BODY, headers={"X-API-Key": key})
     assert response.status_code == 500
     assert "/secret/internal/path" not in response.text
