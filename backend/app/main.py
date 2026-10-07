@@ -24,7 +24,7 @@ from .risk import policy_risk_score
 from .schemas import (
     AnalysisResponse, EmailMetadataResponse, EmailRequest, ErrorResponse, HealthResponse, LoginRequest,
     ModelInfoResponse, PaginatedAnalysisResponse, PriorityResponse, RawEmailRequest, ReadyResponse,
-    RegisterRequest, ReportSummaryResponse, SecurityReason, SecurityResponse, SessionResponse, StatsResponse,
+    RegisterRequest, ReportExportResponse, ReportSummaryResponse, SecurityReason, SecurityResponse, SessionResponse, StatsResponse,
     UserResponse, WorkspaceResponse, SUPPORTED_CLASSIFICATIONS,
 )
 from .service import AnalysisService, build_analysis_service
@@ -32,6 +32,15 @@ from .settings import Settings
 
 LOGGER = logging.getLogger("iesp")
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+
+def _error_schema(description: str) -> dict:
+    return {"model": ErrorResponse, "description": description}
+
+
+AUTH_ERROR = _error_schema("Authentication is required or the session is invalid.")
+VALIDATION_ERROR = _error_schema("Request validation or parsing failed.")
+INTERNAL_ERROR = _error_schema("The server could not complete the request.")
+RATE_LIMIT_ERROR = _error_schema("The authenticated user exceeded the analysis rate limit.")
 
 
 def _error_response(request: Request, code: str, message: str, status_code: int, *, headers=None, retry_after_seconds=None):
@@ -181,6 +190,9 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if settings.environment == "production":
+            response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         if settings.environment == "production":
@@ -205,7 +217,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
     async def health():
         return HealthResponse(status="ok")
 
-    @app.get("/ready", response_model=ReadyResponse)
+    @app.get("/ready", response_model=ReadyResponse, responses={503: {"model": ReadyResponse, "description": "Required model or database dependency is unavailable."}})
     async def ready():
         blockers = []
         if getattr(service.engine, "phishing_model", None) is None:
@@ -214,7 +226,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
             blockers.append("database_unavailable")
         return JSONResponse(status_code=503 if blockers else 200, content=ReadyResponse(status="not_ready" if blockers else "ready", blockers=blockers).model_dump(mode="json"))
 
-    @app.post("/api/v1/auth/register", response_model=SessionResponse, status_code=201)
+    @app.post("/api/v1/auth/register", response_model=SessionResponse, status_code=201, responses={409: _error_schema("Email is already registered."), 422: VALIDATION_ERROR, 500: INTERNAL_ERROR})
     async def register(payload: RegisterRequest):
         try:
             user = service.repository.register_user(payload.email, hash_password(payload.password))
@@ -231,7 +243,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         response.set_cookie(settings.session_cookie_name, token, max_age=settings.session_ttl_hours * 3600, httponly=True, secure=settings.session_cookie_secure, samesite=settings.session_cookie_samesite)
         return response
 
-    @app.post("/api/v1/auth/login", response_model=SessionResponse)
+    @app.post("/api/v1/auth/login", response_model=SessionResponse, responses={401: AUTH_ERROR, 422: VALIDATION_ERROR, 500: INTERNAL_ERROR})
     async def login(payload: LoginRequest):
         user = service.repository.get_user_by_email(payload.email)
         if not user or not verify_password(payload.password, user["password_hash"]):
@@ -245,14 +257,14 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         response.set_cookie(settings.session_cookie_name, token, max_age=settings.session_ttl_hours * 3600, httponly=True, secure=settings.session_cookie_secure, samesite=settings.session_cookie_samesite)
         return response
 
-    @app.post("/api/v1/auth/logout", status_code=204)
+    @app.post("/api/v1/auth/logout", status_code=204, responses={500: INTERNAL_ERROR})
     async def logout(request: Request):
         clear_session(service.repository, request.cookies.get(settings.session_cookie_name))
         response = Response(status_code=204)
         response.delete_cookie(settings.session_cookie_name)
         return response
 
-    @app.get("/api/v1/auth/me", response_model=SessionResponse)
+    @app.get("/api/v1/auth/me", response_model=SessionResponse, responses={401: AUTH_ERROR, 500: INTERNAL_ERROR})
     async def me(ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         user = service.repository.get_user(ctx.user_id, ctx.workspace_id)
         if not user:
@@ -265,7 +277,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
     def rate_limit(ctx: AuthorizationContext):
         limiter.check(f"analysis:{ctx.user_id}", settings.analysis_rate_limit, settings.analysis_rate_window_seconds)
 
-    @app.post("/api/v1/analyze", response_model=AnalysisResponse)
+    @app.post("/api/v1/analyze", response_model=AnalysisResponse, responses={401: AUTH_ERROR, 413: VALIDATION_ERROR, 422: VALIDATION_ERROR, 429: RATE_LIMIT_ERROR, 500: INTERNAL_ERROR})
     async def analyze(request: Request, payload: EmailRequest, ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         rate_limit(ctx)
         email = _email_from_request(payload)
@@ -274,7 +286,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         _log_analysis(result, request, started)
         return _analysis_response(email, result, settings, analyzed_at=datetime.now(timezone.utc))
 
-    @app.post("/api/v1/analyze/raw", response_model=AnalysisResponse)
+    @app.post("/api/v1/analyze/raw", response_model=AnalysisResponse, responses={401: AUTH_ERROR, 413: VALIDATION_ERROR, 422: VALIDATION_ERROR, 429: RATE_LIMIT_ERROR, 500: INTERNAL_ERROR})
     async def analyze_raw(request: Request, payload: RawEmailRequest, ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         if len(payload.raw_email.encode("utf-8")) > settings.max_email_bytes:
             raise HTTPException(413, detail={"code": "EMAIL_TOO_LARGE", "message": "The email is too large."})
@@ -288,7 +300,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         _log_analysis(result, request, started)
         return _analysis_response(email, result, settings, analyzed_at=datetime.now(timezone.utc))
 
-    @app.post("/api/v1/analyze/eml", response_model=AnalysisResponse)
+    @app.post("/api/v1/analyze/eml", response_model=AnalysisResponse, responses={401: AUTH_ERROR, 413: VALIDATION_ERROR, 422: VALIDATION_ERROR, 429: RATE_LIMIT_ERROR, 500: INTERNAL_ERROR})
     async def analyze_eml(request: Request, file: UploadFile = File(...), ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         filename = file.filename or ""
         if not filename.lower().endswith(".eml"):
@@ -307,16 +319,16 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         _log_analysis(result, request, started)
         return _analysis_response(email, result, settings, analyzed_at=datetime.now(timezone.utc))
 
-    @app.get("/api/v1/stats", response_model=StatsResponse)
+    @app.get("/api/v1/stats", response_model=StatsResponse, responses={401: AUTH_ERROR, 500: INTERNAL_ERROR})
     async def stats(ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         return StatsResponse(**service.stats(ctx.workspace_id, settings.high_risk_threshold))
 
-    @app.get("/api/v1/recent", response_model=PaginatedAnalysisResponse)
+    @app.get("/api/v1/recent", response_model=PaginatedAnalysisResponse, responses={401: AUTH_ERROR, 422: VALIDATION_ERROR, 500: INTERNAL_ERROR})
     async def recent(ctx: AuthorizationContext = Depends(require_session(service.repository, settings)), limit: int = Query(20, ge=1, le=100)):
         rows = service.recent(ctx.workspace_id, limit)
         return PaginatedAnalysisResponse(items=[_history_item(row) for row in rows], total=len(rows), page=1, page_size=limit, pages=1 if rows else 0)
 
-    @app.get("/api/v1/history", response_model=PaginatedAnalysisResponse)
+    @app.get("/api/v1/history", response_model=PaginatedAnalysisResponse, responses={401: AUTH_ERROR, 422: VALIDATION_ERROR, 500: INTERNAL_ERROR})
     async def history(
         ctx: AuthorizationContext = Depends(require_session(service.repository, settings)),
         page: int = Query(1, ge=1),
@@ -337,14 +349,14 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         data = service.history(ctx.workspace_id, page=page, page_size=page_size, search=q, classification=classification, min_risk=min_risk, max_risk=max_risk, date_from=date_from, date_to=date_to, sort_by=sort_by, sort_order=sort_order)
         return PaginatedAnalysisResponse(items=[_history_item(row) for row in data["items"]], total=data["total"], page=data["page"], page_size=data["page_size"], pages=data["pages"])
 
-    @app.get("/api/v1/analysis/{message_id}", response_model=AnalysisResponse)
+    @app.get("/api/v1/analysis/{message_id}", response_model=AnalysisResponse, responses={401: AUTH_ERROR, 404: _error_schema("Analysis was not found in the current workspace."), 500: INTERNAL_ERROR})
     async def analysis(message_id: str, ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         row = service.get(ctx.workspace_id, message_id)
         if not row:
             raise HTTPException(404, detail={"code": "NOT_FOUND", "message": "Analysis not found."})
         return _stored_analysis_response(row, settings)
 
-    @app.get("/api/v1/reports/summary", response_model=ReportSummaryResponse)
+    @app.get("/api/v1/reports/summary", response_model=ReportSummaryResponse, responses={401: AUTH_ERROR, 500: INTERNAL_ERROR})
     async def report_summary(ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         stats = service.stats(ctx.workspace_id, settings.high_risk_threshold)
         high_risk = service.history(ctx.workspace_id, page=1, page_size=10, min_risk=settings.high_risk_threshold, sort_by="risk_score", sort_order="desc")["items"]
@@ -355,12 +367,12 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
             high_risk_items=[_history_item(row) for row in high_risk],
         )
 
-    @app.get("/api/v1/reports/export")
+    @app.get("/api/v1/reports/export", responses={200: {"description": "Report export in JSON or CSV format.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportExportResponse"}}, "text/csv": {"schema": {"type": "string"}}}}, 401: AUTH_ERROR, 422: VALIDATION_ERROR, 500: INTERNAL_ERROR})
     async def report_export(format: str = Query("csv", pattern=r"^(csv|json)$"), ctx: AuthorizationContext = Depends(require_session(service.repository, settings))):
         rows = service.history(ctx.workspace_id, page=1, page_size=settings.report_export_limit, sort_by="created_at", sort_order="desc")["items"]
         generated_at = datetime.now(timezone.utc).isoformat()
         if format == "json":
-            return JSONResponse(content={"generated_at": generated_at, "items": rows})
+            return JSONResponse(content=ReportExportResponse(generated_at=datetime.fromisoformat(generated_at), items=[_history_item(row) for row in rows]).model_dump(mode="json"))
         stream = io.StringIO()
         writer = csv.writer(stream)
         writer.writerow(["message_id", "request_id", "sender", "recipients", "subject", "classification", "risk_score", "model_score", "priority", "created_at", "model_version", "policy_version"])
