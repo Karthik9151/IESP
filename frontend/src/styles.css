@@ -507,3 +507,10 @@ textarea{resize:vertical;line-height:1.5}
 .sidebar.collapsed .logout-button{justify-content:center;font-size:0}
 .sidebar.collapsed .logout-button span{font-size:16px}
 @media(max-width:980px){.sidebar-toggle{display:none}.app-layout.sidebar-collapsed{display:block}}
+
+.drawer-backdrop{position:fixed;inset:0;z-index:75;background:rgba(3,7,14,.62);backdrop-filter:blur(4px)}
+.detail-drawer{position:absolute;top:0;right:0;width:min(720px,96vw);height:100%;overflow:auto;padding:18px;border-left:1px solid var(--border);background:var(--bg);box-shadow:-24px 0 70px rgba(0,0,0,.35)}
+.drawer-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding-bottom:12px;margin-bottom:12px;background:var(--bg)}
+.detail-drawer .result-panel{padding-bottom:18px}
+.detail-drawer .panel{box-shadow:none}
+@media(max-width:700px){.detail-drawer{width:100%;padding:12px}}
