@@ -26,13 +26,17 @@
 | External deployment | NOT VERIFIED | Render production endpoint/browser flow was not accessible from the current environment |
 | Live provider OAuth | NOT VERIFIED | Requires user-owned provider registration and consent |
 
-## Verified local checks
+## Verification evidence
 
-- Python compile check: PASS.
-- Targeted backend API/repository tests: PASS — 13 passed.
-- Frontend API-client tests: PASS — 3 passed.
-- Frontend pure JavaScript syntax checks: PASS for \`api.js\` and \`lib/security.js\`.
-- One local command attempted a nonexistent copied \`frontend/tests/security.test.mjs\` file and therefore returned a nonzero shell status; the GitHub branch does contain that file.
+- Completed CI run **37588346379** on `furnished-design`: PASS.
+- Backend/security: PASS — `pytest -q -ra`.
+- Frontend: PASS — `npm ci`, `npm test`, `npm run build`, and `npm audit --audit-level=high`.
+- Python dependency audit: PASS — `pip-audit -r requirements-ml.txt -r requirements-api.txt`; dependency consistency: PASS — `python -m pip check`.
+- Secret scan: PASS — full-history Gitleaks scan.
+- API contract: PASS — generated OpenAPI route, schema, error, pagination, report, and session-cookie security validation.
+- PostgreSQL: PASS — five real integration tests against a PostgreSQL 16 service.
+- Docker: PASS — backend and frontend images built successfully.
+- Browser E2E, live Render deployment, and live provider OAuth remain unverified.
 
 ## Known repository constraints
 
