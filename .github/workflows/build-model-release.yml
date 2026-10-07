@@ -175,12 +175,17 @@ jobs:
             gh release delete-asset "$RELEASE_TAG" "$asset" --yes >/dev/null 2>&1 || true
           done
 
+          # Copy generated metadata to unique filenames so gh never has to
+          # disambiguate two local files both named metadata.json.
+          cp models/phishing/metadata.json /tmp/phishing-metadata.json
+          cp models/priority/metadata.json /tmp/priority-metadata.json
+
           gh release upload "$RELEASE_TAG" \
             models/phishing/phishing_pipeline.joblib \
-            "models/phishing/metadata.json#phishing-metadata.json" \
+            /tmp/phishing-metadata.json \
             models/phishing/phishing_metrics.json \
             models/priority/priority_pipeline.joblib \
-            "models/priority/metadata.json#priority-metadata.json" \
+            /tmp/priority-metadata.json \
             models/priority/priority_metrics.json \
             models/model-manifest.json
 
@@ -192,10 +197,26 @@ jobs:
           set -e
           rm -rf /tmp/iesp-model-release-verification
           mkdir -p /tmp/iesp-model-release-verification
-          gh release download "$RELEASE_TAG" \
-            --pattern "model-manifest.json" \
-            --dir /tmp/iesp-model-release-verification
-          test -s /tmp/iesp-model-release-verification/model-manifest.json
+          expected_assets=(
+            model-manifest.json
+            phishing_pipeline.joblib
+            phishing-metadata.json
+            phishing_metrics.json
+            priority_pipeline.joblib
+            priority-metadata.json
+            priority_metrics.json
+          )
+
+          release_assets=$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+          for asset in "${expected_assets[@]}"; do
+            echo "$release_assets" | grep -Fxq "$asset" || {
+              echo "Missing expected release asset: $asset"
+              exit 1
+            }
+            gh release download "$RELEASE_TAG" --pattern "$asset" --dir /tmp/iesp-model-release-verification
+            test -s "/tmp/iesp-model-release-verification/$asset"
+          done
+
           python - <<'PY'
           import json
           from pathlib import Path
