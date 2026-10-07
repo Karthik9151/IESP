@@ -15,8 +15,9 @@ class OAuthStore:
         self.settings = settings
         raw_key = os.getenv("IESP_OAUTH_ENCRYPTION_KEY", "")
         if not raw_key:
-            if settings.environment == "production":
-                raise ValueError("IESP_OAUTH_ENCRYPTION_KEY is required in production")
+            provider_configured = any(os.getenv(k) for k in ("GOOGLE_CLIENT_ID","GOOGLE_CLIENT_SECRET","MICROSOFT_CLIENT_ID","MICROSOFT_CLIENT_SECRET"))
+            if settings.environment == "production" and provider_configured:
+                raise ValueError("IESP_OAUTH_ENCRYPTION_KEY is required when provider OAuth is configured")
             raw_key = base64.urlsafe_b64encode(hashlib.sha256(b"iesp-development-oauth-key").digest()).decode()
         self.fernet = Fernet(raw_key.encode() if isinstance(raw_key, str) else raw_key)
         self.is_pg = settings.database_url.startswith(("postgres://", "postgresql://"))
@@ -88,7 +89,7 @@ class OAuthStore:
             sql="""INSERT INTO oauth_states(state_hash,user_id,workspace_id,session_hash,provider,code_verifier_enc,expires_at)
                    VALUES(%s,%s,%s,%s,%s,%s,%s)"""
         else:
-            values=(*values,expiry.isoformat())
+            values=(*values[:6],expiry.isoformat())
             sql="""INSERT INTO oauth_states(state_hash,user_id,workspace_id,session_hash,provider,code_verifier_enc,expires_at)
                    VALUES(?,?,?,?,?,?,?)"""
         with self._connect() as c:

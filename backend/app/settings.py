@@ -38,4 +38,3 @@ class Settings:
         if self.environment=="production" and not self.database_url.startswith(("postgres://","postgresql://")): raise ValueError("Production requires PostgreSQL DATABASE_URL")
         if self.environment=="production" and not self.session_cookie_secure: raise ValueError("Production requires a secure session cookie")
         if self.environment=="production" and (not self.allowed_origins or "*" in self.allowed_origins): raise ValueError("Production requires explicit CORS origins")
-        if self.environment=="production" and not os.getenv("IESP_OAUTH_ENCRYPTION_KEY"): raise ValueError("Production requires IESP_OAUTH_ENCRYPTION_KEY")
