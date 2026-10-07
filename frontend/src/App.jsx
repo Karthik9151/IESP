@@ -58,6 +58,7 @@ export default function App() {
   const [shortcutHelp, setShortcutHelp] = useState(false)
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('iesp.sidebarCollapsed') === '1')
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -69,20 +70,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const onKey = (event) => {
-      if ((event.target instanceof HTMLInputElement) || (event.target instanceof HTMLTextAreaElement) || (event.target instanceof HTMLSelectElement)) return
-      if (event.key === '/') { event.preventDefault(); document.querySelector('#global-search')?.focus(); return }
-      if (event.key === '?') { event.preventDefault(); setShortcutHelp(true); return }
-      if (event.key === 'g') {
-        const next = () => {
-          let id = 'overview'
-          const key = String(event.key || '').toLowerCase()
-          if (key === 'd') id = 'overview'
-          return id
-        }
-        window.__iespNavReady = next
-      }
-    }
     let chord = ''
     const handler = (event) => {
       if ((event.target instanceof HTMLInputElement) || (event.target instanceof HTMLTextAreaElement) || (event.target instanceof HTMLSelectElement)) return
@@ -94,12 +81,14 @@ export default function App() {
       }
     }
     window.addEventListener('keydown', handler)
-    return () => { window.removeEventListener('keydown', handler); window.__iespNavReady = null }
+    return () => window.removeEventListener('keydown', handler)
   })
 
   const navigate = (nextPage) => { setDetailId(null); setPage(nextPage) }
   const openAnalysis = (messageId) => { setDetailId(messageId); setPage('detail') }
   const analyzed = () => { setRefreshKey((value) => value + 1); setToast({ type: 'success', message: 'Analysis stored in History.' }) }
+
+  useEffect(() => { localStorage.setItem('iesp.sidebarCollapsed', sidebarCollapsed ? '1' : '0') }, [sidebarCollapsed])
 
   const dismissOnboarding = () => {
     localStorage.setItem('iesp.onboarding.dismissed', '1')
@@ -140,8 +129,9 @@ export default function App() {
         </div>
       </header>
 
-      <div className="app-layout">
-        <aside className="sidebar">
+      <div className={'app-layout ' + (sidebarCollapsed ? 'sidebar-collapsed' : '')}>
+        <aside className={'sidebar ' + (sidebarCollapsed ? 'collapsed' : '')}>
+          <button className="sidebar-toggle" type="button" onClick={() => setSidebarCollapsed(v => !v)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}><span aria-hidden="true">{sidebarCollapsed ? '»' : '«'}</span><small>{sidebarCollapsed ? 'Expand' : 'Collapse'}</small></button>
           <div className="workspace-card">
             <span className="eyebrow">Protected workspace</span>
             <strong>{session.workspace.name}</strong>
