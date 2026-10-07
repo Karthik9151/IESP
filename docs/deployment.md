@@ -43,16 +43,44 @@ If `models-v1` does not yet exist, the image can still be built, but the contain
 
 ## Render
 
-The Render backend service uses the repository Dockerfile. Build success no longer depends on the model release being present.
+The recommended production/demo layout is two Render services:
 
-The published `models-v1` release is verified. Deploy/restart the backend so the startup bootstrap can download and verify the artifacts.
+1. Backend: Render Web Service using the repository Dockerfile.
+2. Frontend: Render Static Site built from `frontend/`.
+
+The backend Docker runtime honors Render's `PORT` environment variable and starts on `0.0.0.0`. The startup bootstrap downloads `models-v1`, validates the M1 contract, and verifies SHA-256 and file sizes before the API starts.
+
+Backend settings:
+
+- Runtime: Docker
+- Root directory: repository root
+- Health check path: `/ready`
+- `IESP_ENVIRONMENT=production`
+- `IESP_AUTH_MODE=required`
+- `IESP_API_KEY`: set as a Render secret
+- `IESP_ALLOWED_ORIGINS`: set to the exact deployed frontend origin
+- `IESP_DATABASE_PATH=/app/data/iesp.sqlite3`
+- `IESP_MODEL_RELEASE_TAG=models-v1`
+
+Frontend settings:
+
+- Service type: Static Site
+- Root directory: `frontend`
+- Build command: `npm install --no-audit --no-fund && npm run build`
+- Publish directory: `dist`
+- `VITE_API_BASE_URL`: exact HTTPS URL of the deployed backend
 
 After deployment, verify:
 
-- `/health` → `{"status":"ok"}`
-- `/ready` → `{"status":"ready","blockers":[]}`
+- backend `/health` -> HTTP 200
+- backend `/ready` -> HTTP 200 with `{"status":"ready","blockers":[]}`
+- frontend loads over HTTPS
+- browser requests from the frontend to `/api/v1/stats` and `/api/v1/analyze` succeed with the backend API key
+- a test analysis is persisted and then visible through the recent/history endpoint
 
-The deployed service should not be considered ready until the second response is observed.
+The deployed service should not be considered ready until the `/ready` response is observed.
+
+Render's free web services have ephemeral filesystems, so the project's SQLite history is not durable across deploys, restarts, or free-instance spin-down. Use Render Postgres or another durable datastore when persistent production history is required.
 
 ## CI
 
