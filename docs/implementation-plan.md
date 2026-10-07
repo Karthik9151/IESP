@@ -1,42 +1,48 @@
 # IESP Master Implementation Status
 
-The project follows the master completion guide and uses exactly one active development branch: `development`. `main` remains the stable/reference branch. Historical branches such as `v0.2` and `v0.3` are not active development branches.
+The project uses `main` as the stable production/reference branch. The former `final-design` hardening branch was merged into `main` and is no longer the deployment source.
 
 ## M0 — Repository Audit + Architecture
 
-**VERIFIED.** Repository structure, Git history, existing ML/security/backend code, configuration, tests, documentation and architecture were audited before extending the implementation. Existing working M1/M2 foundations were preserved.
+**VERIFIED.** Repository structure, Git history, existing ML/security/backend code, configuration, tests, documentation and architecture were audited before extending the implementation. Existing M1/M2 foundations were preserved.
 
 ## M1 — Dataset + ML Pipeline
 
-**VERIFIED.** The accepted M1 contract remains unchanged: deterministic preprocessing, exact duplicate removal, fingerprint validation, stratified 70/15/15 splitting, cross-split leakage checking and label validation. The authoritative dataset remains external to GitHub.
+**VERIFIED.** The accepted M1 contract remains unchanged: deterministic preprocessing, exact duplicate removal, fingerprint validation, stratified 70/15/15 splitting, cross-split leakage checking and label validation. The authoritative dataset remains external to Git.
 
 ## M2 — Security Analysis Engine
 
-**VERIFIED.** Safe MIME/header parsing, structural URL analysis, metadata-only attachment policy, HTML structural analysis, explainable reasons, fail-closed decisioning, explicit priority eligibility, and the TF-IDF + LinearSVC phishing baseline are integrated. Authoritative MeAJOR training and validation completed successfully in model-release workflow #16, which enforced the accepted M1 fingerprint/split contract and verified the published runtime artifacts.
+**VERIFIED.** Safe MIME/header parsing, structural URL analysis, metadata-only attachment policy, HTML structural analysis, explainable reasons, fail-closed decisioning, explicit priority eligibility, and the TF-IDF + LinearSVC phishing baseline are integrated. The published runtime model artifacts are verified through the model-release workflow.
 
 ## M3 — Backend + Database
 
-**VERIFIED.** FastAPI exposes `/health`, `/ready`, `/api/v1/analyze`, `/api/v1/stats`, `/api/v1/recent`, and `/api/v1/analysis/{message_id}`. Strict Pydantic validation, request limits, API-key authentication, authorization, request IDs, safe errors, restrictive CORS, and SQLite analysis-metadata persistence are implemented.
+**HARDENED.** FastAPI exposes authentication, analysis, history, statistics, reports, provider OAuth and readiness endpoints. Strict validation, request limits, request IDs, safe errors, restrictive CORS, server-side sessions, workspace authorization and SQLite/PostgreSQL persistence are implemented.
 
 ## M4 — React Dashboard
 
-**IMPLEMENTED.** React + Vite provides manual analysis, findings, reason codes, priority gating, aggregate statistics, recent metadata, responsive states and safe text-only treatment of HTML.
+**HARDENED.** React + Vite provides registration/login, dashboard, manual and `.eml` analysis, result transparency, history, reports, settings and logout. Email HTML is treated as untrusted text/structure rather than trusted DOM.
 
-## M5 — Gmail / Outlook Integration
+## M5 — Gmail / Microsoft Integration
 
-**IMPLEMENTED / PARTIALLY VERIFIED.** Provider-neutral contracts, read-only Gmail/Graph adapters, normalization, OAuth state validation and PKCE helpers are present. Live OAuth consent is not claimed.
+**IMPLEMENTED.** Provider-neutral contracts, read-only Gmail/Microsoft adapters, OAuth state binding, PKCE, encrypted provider-token storage, connection management and provider-message analysis routes are present. Live external consent remains dependent on real provider-console credentials and redirect configuration.
 
 ## M6 — Testing + Security Testing
 
-**VERIFIED by CI #47.** API, persistence, provider, adversarial security and frontend invariant tests are included. CI #47 passed critical backend tests, the non-blocking regression job, dependency auditing, frontend tests/build, and secret scanning.
+**HARDENED / VERIFIED BY CI.** Backend tests, PostgreSQL integration, frontend tests/build, dependency auditing, secret scanning, API contract validation and Docker verification are part of the repository CI gates.
 
 ## M7 — Deployment
 
-**IMPLEMENTED / PARTIALLY VERIFIED.** Backend/frontend Dockerfiles, Compose, `.env.example`, `.dockerignore` and GitHub Actions are included. The published `models-v1` release is verified; external deployment and local Docker execution are not claimed.
+**HARDENED.** Render deployment configuration defines the production backend, frontend static site and PostgreSQL resources. Production session/security settings, CORS wiring, model-artifact configuration, SPA fallback and security headers are defined in `render.yaml`.
+
+Current Render production services:
+- frontend display name: `iesp-home`
+- frontend URL: `https://iesp-frontend.onrender.com`
+- backend: `iesp-backend`
+- production branch: `main`
 
 ## M8 — Documentation + Presentation
 
-**IMPLEMENTED.** Architecture, current state, API, ML methodology, threat model, provider integration, deployment, limitations and presentation/demo material are maintained.
+**READY.** README, architecture, API, deployment, threat-model, limitations, current-state and presentation/demo material are maintained for the final academic demonstration.
 
 ## End-to-end invariant
 
@@ -46,4 +52,4 @@ Provider adapter → Safe parsing → Security features + phishing evidence → 
 → Priority eligibility → P1 / P2 / P3 only for NON-PHISHING → FastAPI → React
 ```
 
-The project is complete only for the parts that have either been implemented or actually verified. External blockers are recorded rather than fabricated.
+The project is complete only for the parts that have either been implemented or actually verified. External verification boundaries are recorded rather than fabricated.
