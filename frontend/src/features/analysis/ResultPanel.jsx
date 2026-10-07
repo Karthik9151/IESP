@@ -74,29 +74,30 @@ export default function ResultPanel({ data, preview }) {
 
       <div className="result-grid">
         <section className="panel" aria-labelledby="why-heading">
-          <div className="section-title-row"><div><span className="eyebrow">Evidence</span><h3 id="why-heading">Why this verdict</h3></div><span className="microcopy">{reasons.length} signal{reasons.length === 1 ? '' : 's'}</span></div>
+          <div className="section-title-row"><div><span className="eyebrow">Evidence</span><h3 id="why-heading">Security reasons</h3></div><span className="microcopy">{reasons.length} signal{reasons.length === 1 ? '' : 's'}</span></div>
           {reasons.length ? <div className="risk-reasons">{reasons.map((reason, index) => <RiskReason reason={reason} key={(reason.code || 'reason') + index}/>)}</div> : <div className="empty-inline">No additional deterministic findings were produced.</div>}
         </section>
 
         <section className="panel" aria-labelledby="evidence-heading">
-          <div className="section-title-row"><div><span className="eyebrow">ML evidence</span><h3 id="evidence-heading">Ranking strength</h3></div><span className="tooltip" title="This is the LinearSVC decision margin used for ranking, not a probability.">?</span></div>
+          <div className="section-title-row"><div><span className="eyebrow">ML evidence</span><h3 id="evidence-heading">Model decision margin</h3></div><span className="tooltip" title="This is the LinearSVC decision margin used for ranking, not a probability.">?</span></div>
           <EvidenceGauge value={security.model_score} />
+          <div className="policy-risk-score"><strong>Policy risk score</strong><span>{typeof security.risk_score === 'number' && Number.isFinite(security.risk_score) ? Math.round(security.risk_score) + '/100' : 'Not available'}</span><small>Application risk/policy score, not a probability.</small></div>
           <p className="microcopy">A LinearSVC margin indicates relative evidence strength. It is not calibrated as a probability or confidence percentage.</p>
         </section>
 
         <section className="panel priority-card" aria-labelledby="priority-heading">
-          <div className="section-title-row"><div><span className="eyebrow">Priority</span><h3 id="priority-heading">Triage priority</h3></div>{eligible ? <span className="priority-chip p2">Proxy label</span> : <span className="lock-chip">LOCKED</span>}</div>
+          <div className="section-title-row"><div><span className="eyebrow">Priority</span><h3 id="priority-heading">Priority assessment</h3></div>{eligible ? <span className="priority-chip p2">Proxy label</span> : <span className="lock-chip">LOCKED</span>}</div>
           {eligible ? <><div className="priority-hero"><span className={'priority-chip ' + String(data.priority.label).toLowerCase()}>{data.priority.label}</span><strong>{data.priority.label === 'P1' ? 'Immediate attention' : data.priority.label === 'P2' ? 'Elevated attention' : 'Routine attention'}</strong></div><p>Priority was eligible because the security verdict is NON-PHISHING. These P1/P2/P3 labels are project proxy labels, not human-annotated urgency.</p></> : <div className="withheld"><span>▣</span><div><strong>Priority withheld – security review first</strong><p>Priority is never surfaced for PHISHING, SUSPICIOUS or REVIEW REQUIRED decisions.</p></div></div>}
         </section>
 
         <section className="panel" aria-labelledby="metadata-heading">
-          <div className="section-title-row"><div><span className="eyebrow">Traceability</span><h3 id="metadata-heading">Analysis record</h3></div></div>
+          <div className="section-title-row"><div><span className="eyebrow">Traceability</span><h3 id="metadata-heading">Model metadata</h3></div></div>
           <dl className="metadata-list">
             <div><dt>Message ID</dt><dd className="mono-text">{data.message_id}</dd></div>
             <div><dt>Request ID</dt><dd className="mono-text">{data.request_id}</dd></div>
             <div><dt>Sender</dt><dd>{data.email?.sender || '—'}</dd></div>
             <div><dt>Subject</dt><dd>{data.email?.subject || '—'}</dd></div>
-            <div><dt>Analysed</dt><dd>{data.analyzed_at ? new Date(data.analyzed_at).toLocaleString() : '—'}</dd></div>
+            <div><dt>Analysis time</dt><dd>{data.analyzed_at ? new Date(data.analyzed_at).toLocaleString() : '—'}</dd></div>
           </dl>
         </section>
       </div>
