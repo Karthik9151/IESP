@@ -59,7 +59,7 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          npm install --no-audit --no-fund
+          npm ci
       - name: Frontend tests
         run: npm test
       - name: Production build
@@ -78,41 +78,6 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
-  frontend-lockfile:
-    name: Bootstrap frontend lockfile
-    if: github.event_name == 'push' && github.ref == 'refs/heads/furnished-design'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 1
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "20"
-      - name: Generate deterministic lockfile when missing
-        working-directory: frontend
-        run: |
-          if [ -f package-lock.json ]; then
-            echo "package-lock.json already exists."
-            exit 0
-          fi
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          test -s package-lock.json
-      - name: Commit lockfile
-        run: |
-          if [ -f frontend/package-lock.json ] && git ls-files --error-unmatch frontend/package-lock.json >/dev/null 2>&1; then
-            echo "package-lock.json is already tracked."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/package-lock.json
-          git diff --cached --quiet && { echo "No lockfile change."; exit 0; }
-          git commit -m "build: add deterministic frontend lockfile"
-          git push origin HEAD:${GITHUB_REF_NAME}
 
   contract:
     name: API contract validation
