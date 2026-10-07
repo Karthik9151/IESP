@@ -34,21 +34,21 @@ Priority is never returned for PHISHING, SUSPICIOUS, or REVIEW REQUIRED.
 
 ## Repository workflow
 
-`development` is the only active development branch. `main` is the stable/reference branch. Milestones are stages, not branches.
+`furnished-design` is the current hardening branch for this implementation. `main` remains the stable/reference branch. Milestones are stages, not long-lived branches.
 
 ## M0–M8 status
 
 | Milestone | Status | Evidence boundary |
 |---|---|---|
-| M0 Repository audit + architecture | VERIFIED | Repository structure, architecture, workflow and source-of-truth docs updated |
+| M0 Repository audit + architecture | VERIFIED | Repository structure, architecture and source-of-truth docs retained |
 | M1 Dataset + ML pipeline | VERIFIED | Accepted fingerprint/splits and reproducible pipeline are preserved |
-| M2 Security analysis engine / phishing ML | VERIFIED | Authoritative MeAJOR training/validation completed by model-release workflow #16; verified `models-v1` artifacts and manifest published |
-| M3 Backend + database | VERIFIED | FastAPI, validation, API-key auth, SQLite metadata persistence, and API regression tests |
-| M4 React dashboard | IMPLEMENTED | React/Vite UI, API integration, responsive states, safe text rendering |
-| M5 Gmail / Outlook integration | IMPLEMENTED | Read-only provider adapters + OAuth state/PKCE helpers + mocked adapter tests; live provider credentials not tested here |
-| M6 Testing + security testing | VERIFIED by CI #47 | Critical backend tests, regression job, dependency audit, frontend tests/build, and secret scan all passed |
-| M7 Deployment | IMPLEMENTED / PARTIALLY VERIFIED | Docker, Compose, CI, dependency audit, secret scan; external deployment not executed |
-| M8 Documentation + presentation | IMPLEMENTED | Project docs, demo runbook, methodology, threat model, deployment and presentation outline |
+| M2 Security analysis engine / phishing ML | VERIFIED | Existing verified model-release workflow and `models-v1` assets preserved |
+| M3 Backend + database | HARDENED | Secure session auth, strict validation, workspace-scoped persistence, SQLite + PostgreSQL |
+| M4 React dashboard | HARDENED | Feature-based React UI, safe text rendering, responsive/accessibility improvements |
+| M5 Gmail / Outlook integration | PARTIALLY IMPLEMENTED | Read-only adapters + OAuth state/PKCE helpers; no application-level provider OAuth routes/token lifecycle; live provider credentials not tested |
+| M6 Testing + security testing | HARDENED | Blocking backend/frontend/security/contract CI gates added |
+| M7 Deployment | HARDENED / PARTIALLY VERIFIED | Docker, Compose, Render config, runtime model bootstrap; live deployment not verified |
+| M8 Documentation + presentation | UPDATED | API, architecture, deployment and current-state docs synchronized |
 
 ## Preserved M1 contract
 
@@ -61,43 +61,55 @@ Priority is never returned for PHISHING, SUSPICIOUS, or REVIEW REQUIRED.
 - exact full-record deduplication and cross-split fingerprint leakage checks
 - authoritative dataset intentionally excluded from GitHub
 
-## Verified model release
-
-The current model release is `models-v1`. GitHub Actions model-release workflow **#16** completed successfully from commit `1b84ff5f2a8d33b22cab6294b085d97e8964cb21`.
-
-The workflow downloaded the authoritative MeAJOR dataset, verified the accepted M1 checksum/fingerprint/splits, trained both runtime models, published the release assets, and verified the expected release assets and manifest.
-
 ## ML baselines
 
 ### Phishing
-TF-IDF word unigrams/bigrams + LinearSVC. TF-IDF is fitted only on the training split. `decision_function` is a ranking margin, not a probability.
+TF-IDF word unigrams/bigrams + LinearSVC. `decision_function` is a ranking margin, not a probability.
 
 ### Priority
-VADER sentiment + engineered email urgency features + Logistic Regression. P1/P2/P3 are deterministic proxy/project labels, not human urgency annotations.
+VADER + engineered email features + Logistic Regression. P1/P2/P3 are deterministic proxy/project labels, not human urgency annotations.
+
+## Verification status
+
+The latest `furnished-design` CI run **37589024380** passed backend/security tests, frontend tests/build, dependency audits, full-history secret scanning, generated OpenAPI contract validation, real PostgreSQL 16 integration tests, and Docker image builds. New verification commits are being checked by CI now. Live Render/browser deployment and live provider OAuth remain unverified.
 
 ## Security controls
 
-Email content is treated only as untrusted data. Attachments are metadata-only and never executed. URLs are inspected structurally and never automatically visited. Local/private IP destinations are escalated as SSRF-sensitive. HTML is analyzed as text and is never rendered by the dashboard. API authentication uses an environment-provided key with constant-time comparison. Logs exclude request bodies, credentials and raw attachments.
+Email content is treated only as untrusted data. Attachments are metadata-only and never executed. URLs are inspected structurally and never automatically visited. Local/private destinations are escalated as SSRF-sensitive. HTML is analyzed as text and is never rendered by the dashboard.
+
+Authentication uses a server-side session identified by an HTTP-only cookie. The browser has no API-key or bearer-token shortcut. Production requires a Secure cookie and explicit CORS origins. Session tokens are stored only as hashes server-side.
+
+Logs exclude passwords, session tokens, API keys, raw email bodies and attachment contents.
 
 ## API
 
 - `GET /health`
 - `GET /ready`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
 - `POST /api/v1/analyze`
+- `POST /api/v1/analyze/raw`
+- `POST /api/v1/analyze/eml`
 - `GET /api/v1/stats`
 - `GET /api/v1/recent?limit=20`
+- `GET /api/v1/history`
 - `GET /api/v1/analysis/{message_id}`
+- `GET /api/v1/reports/summary`
+- `GET /api/v1/reports/export?format=csv|json`
 
-Analysis requires `X-API-Key` unless authentication is explicitly disabled in development/test mode.
+Analysis lookups and aggregate data are scoped by the authenticated workspace.
 
 ## Run locally
+
+Backend:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-ml.txt -r requirements-api.txt
 export IESP_ENVIRONMENT=development
-export IESP_API_KEY='replace-with-a-long-random-secret'
 uvicorn backend.app.main:app --reload
 ```
 
@@ -105,28 +117,22 @@ Frontend:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-The backend intentionally reports `/ready` as unavailable until required model artifacts exist.
+No API key is required by the browser. Authentication is established by the HTTP-only session cookie.
 
-## Reproduce M1 and train models
+The backend reports `/ready` as unavailable until required model artifacts are available.
 
-After obtaining the accepted MeAJOR file locally or in Colab:
+## .eml workflow
 
-```bash
-python scripts/run_dataset_pipeline.py --input /path/to/meajor_cleaned_preprocessed.parquet.gzip
-python scripts/run_phishing_model.py
-python scripts/run_priority_model.py
-```
-
-The existing `scripts/run_m2_acceptance.py` refuses to claim acceptance when the fingerprint or split contract does not match.
+The Analyze page supports paste-based analysis and bounded `.eml` upload. The browser validates extension/size, prevents duplicate submission, supports cancellation, and never renders submitted HTML. The backend performs safe MIME parsing and stores analysis metadata/results rather than raw message bodies.
 
 ## Provider integrations
 
-`src/providers/` contains provider-neutral interfaces, Gmail and Microsoft Graph read-only adapters, normalization helpers, and OAuth state/PKCE helpers. No adapter exposes mailbox-mutating operations. Live provider validation requires external application configuration and is not claimed as completed here.
+`src/providers/` contains provider-neutral interfaces, Gmail and Microsoft Graph read-only adapters, normalization helpers, and OAuth state/PKCE helpers. PKCE challenges are now supported by the authorization URL builder. The repository does not currently expose provider OAuth HTTP endpoints or long-lived provider-token storage, so live Gmail/Microsoft authorization and mailbox verification cannot honestly be claimed.
 
 ## Research integrity
 
-No accuracy, F1, ROC-AUC, PR-AUC, provider-success, deployment-success, or security-test result is claimed unless that execution was actually observed. External blockers are recorded as PENDING/BLOCKED rather than hidden.
+No accuracy, F1, ROC-AUC, PR-AUC, provider-success, deployment-success, or security-test result is claimed unless that execution was actually observed. External blockers are recorded as pending/not verified rather than hidden.

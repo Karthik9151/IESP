@@ -10,8 +10,8 @@ COPY backend ./backend
 COPY src ./src
 COPY configs ./configs
 COPY models ./models
-COPY data ./data
 COPY scripts ./scripts
+RUN mkdir -p /app/data
 
 ARG IESP_MODEL_OWNER=Karthik9151
 ARG IESP_MODEL_REPO=IESP
@@ -25,7 +25,7 @@ USER iesp
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python -c 'import os,urllib.request; urllib.request.urlopen("http://127.0.0.1:"+os.getenv("PORT","8000")+"/health",timeout=3).read()'
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python -c 'import os,urllib.request; urllib.request.urlopen("http://127.0.0.1:"+os.getenv("PORT","8000")+"/ready",timeout=3).read()'
 
 ENTRYPOINT ["python", "scripts/bootstrap_models.py"]
 CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

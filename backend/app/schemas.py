@@ -6,11 +6,44 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-_HEADER_NAME_RE = re.compile(r"^[A-Za-z0-9!#$%&'*+._^|~-]+$")
+from src.domain.models import SecurityClassification
 
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class RegisterRequest(StrictModel):
+    email: str = Field(min_length=5, max_length=320)
+    password: str = Field(min_length=10, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", value):
+            raise ValueError("Valid email required")
+        return value
+
+
+class LoginRequest(RegisterRequest):
+    pass
+
+
+class UserResponse(StrictModel):
+    id: int
+    email: str
+
+
+class WorkspaceResponse(StrictModel):
+    id: int
+    name: str
+    role: str
+
+
+class SessionResponse(StrictModel):
+    user: UserResponse
+    workspace: WorkspaceResponse
 
 
 class AttachmentRequest(StrictModel):
@@ -31,34 +64,47 @@ class EmailRequest(StrictModel):
     attachments: list[AttachmentRequest] = Field(default_factory=list, max_length=25)
     received_timestamp: datetime | None = None
 
-    @field_validator("message_id", "sender", "subject", "text_body", "html_body", mode="before")
+    @field_validator("message_id", "sender", "subject", mode="before")
     @classmethod
-    def safe_text(cls, value):
-        if not isinstance(value, str):
-            raise ValueError("String value required")
-        if any(ch in value for ch in ("\x00", "\r")):
-            raise ValueError("NUL and carriage-return characters are not allowed")
+    def single_line(cls, value: object) -> object:
+        if not isinstance(value, str) or any(char in value for char in ("\x00", "\r", "\n")):
+            raise ValueError("Invalid text value")
         return value
 
-    @field_validator("recipients")
+    @field_validator("text_body", "html_body", mode="before")
     @classmethod
-    def safe_recipients(cls, values):
-        for value in values:
-            if not isinstance(value, str) or any(ch in value for ch in ("\r", "\n", "\x00")):
-                raise ValueError("Invalid recipient value")
-        return values
+    def body_safe(cls, value: object) -> object:
+        if not isinstance(value, str) or "\x00" in value or "\r" in value:
+            raise ValueError("Invalid body value")
+        return value
+
+    @field_validator("recipients", mode="before")
+    @classmethod
+    def recipients_safe(cls, value: object) -> object:
+        if not isinstance(value, list) or not value:
+            raise ValueError("At least one recipient is required")
+        cleaned: list[str] = []
+        for item in value:
+            if not isinstance(item, str) or not item.strip() or any(char in item for char in ("\x00", "\r", "\n")):
+                raise ValueError("Invalid recipient")
+            cleaned.append(item.strip())
+        return cleaned
 
     @field_validator("headers")
     @classmethod
-    def safe_headers(cls, values):
-        for name, value in values.items():
-            if not _HEADER_NAME_RE.fullmatch(name):
-                raise ValueError("Invalid header name")
-            if not isinstance(value, str) or any(ch in value for ch in ("\r", "\n", "\x00")):
-                raise ValueError("Invalid header value")
-            if len(value) > 8192:
-                raise ValueError("Header value too long")
-        return values
+    def headers_safe(cls, value: dict[str, str]) -> dict[str, str]:
+        for key, item in value.items():
+            if not re.fullmatch(r"[A-Za-z0-9!#$%&'*+._^|~-]+", key):
+                raise ValueError("Invalid header")
+            if not isinstance(item, str) or any(char in item for char in ("\x00", "\r", "\n")):
+                raise ValueError("Invalid header")
+            if len(item) > 8192:
+                raise ValueError("Invalid header")
+        return value
+
+
+class RawEmailRequest(StrictModel):
+    raw_email: str = Field(min_length=1, max_length=2_000_000)
 
 
 class SecurityReason(StrictModel):
@@ -70,12 +116,15 @@ class SecurityReason(StrictModel):
 
 
 class SecurityResponse(StrictModel):
-    classification: Literal["PHISHING", "SUSPICIOUS", "NON-PHISHING", "REVIEW REQUIRED"]
-    reasons: list[SecurityReason] = Field(default_factory=list)
+    classification: str
+    risk_score: float = Field(ge=0, le=100)
+    model_score: float | None = None
+    model_score_kind: Literal["decision_margin", "unavailable"]
+    reasons: list[SecurityReason]
 
 
 class PriorityResponse(StrictModel):
-    label: Literal["P1", "P2", "P3"]
+    label: str
     proxy_label: bool = True
     score_by_class: dict[str, float] = Field(default_factory=dict)
 
@@ -83,22 +132,67 @@ class PriorityResponse(StrictModel):
 class ModelInfoResponse(StrictModel):
     phishing: str
     priority: str | None = None
+    model_version: str
+    policy_version: str
+
+
+class EmailMetadataResponse(StrictModel):
+    message_id: str
+    sender: str
+    recipients: list[str]
+    subject: str
 
 
 class AnalysisResponse(StrictModel):
     message_id: str
     request_id: str
+    analyzed_at: datetime
+    email: EmailMetadataResponse
     security: SecurityResponse
     priority: PriorityResponse | None = None
     model_info: ModelInfoResponse
 
 
+class RecentAnalysisItem(StrictModel):
+    message_id: str
+    request_id: str
+    sender: str
+    recipients: list[str]
+    subject: str
+    classification: str
+    risk_score: float
+    priority: str | None
+    created_at: datetime
+
+
+class PaginatedAnalysisResponse(StrictModel):
+    items: list[RecentAnalysisItem]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
 class StatsResponse(StrictModel):
-    total: int = Field(ge=0)
-    phishing: int = Field(ge=0)
-    suspicious: int = Field(ge=0)
-    non_phishing: int = Field(ge=0)
-    review_required: int = Field(ge=0)
+    total: int
+    phishing: int
+    suspicious: int
+    non_phishing: int
+    review_required: int
+    high_risk: int
+    high_risk_percentage: float
+
+
+class ReportSummaryResponse(StrictModel):
+    generated_at: datetime
+    stats: StatsResponse
+    threat_distribution: dict[str, int]
+    high_risk_items: list[RecentAnalysisItem]
+
+
+class ReportExportResponse(StrictModel):
+    generated_at: datetime
+    items: list[RecentAnalysisItem]
 
 
 class HealthResponse(StrictModel):
@@ -108,3 +202,17 @@ class HealthResponse(StrictModel):
 class ReadyResponse(StrictModel):
     status: Literal["ready", "not_ready"]
     blockers: list[str] = Field(default_factory=list)
+
+
+class ErrorBody(StrictModel):
+    code: str
+    message: str
+    request_id: str
+    retry_after_seconds: int | None = None
+
+
+class ErrorResponse(StrictModel):
+    error: ErrorBody
+
+
+SUPPORTED_CLASSIFICATIONS = {item.value for item in SecurityClassification}

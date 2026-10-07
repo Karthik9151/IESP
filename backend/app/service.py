@@ -4,29 +4,41 @@ from pathlib import Path
 
 import yaml
 
-from src.domain.models import AnalysisResult, EmailMessage
 from src.security.engine import SecurityEngine, SklearnPhishingPredictor, SklearnPriorityPredictor
-from .repository import AnalysisRepository, SQLiteAnalysisRepository
+
+from .repository import build_repository
 
 
 class AnalysisService:
-    def __init__(self, engine: SecurityEngine, repository: AnalysisRepository | None = None):
+    def __init__(self, engine, repository, model_version: str = "models-v1", policy_version: str = "policy-v1"):
         self.engine = engine
-        self.repository = repository or SQLiteAnalysisRepository("data/iesp.sqlite3")
+        self.repository = repository
+        self.model_version = model_version
+        self.policy_version = policy_version
 
-    def analyze(self, email: EmailMessage, request_id: str) -> AnalysisResult:
+    def analyze(self, email, request_id, user_id, workspace_id):
         result = self.engine.analyze(email, request_id=request_id)
-        self.repository.save(result)
+        self.repository.save(
+            result,
+            email,
+            user_id,
+            workspace_id,
+            self.model_version,
+            self.policy_version,
+        )
         return result
 
-    def stats(self) -> dict[str, int]:
-        return self.repository.stats()
+    def stats(self, workspace_id, high_risk_threshold=75.0):
+        return self.repository.stats(workspace_id, high_risk_threshold)
 
-    def recent(self, limit: int = 50) -> list[dict]:
-        return self.repository.recent(limit)
+    def history(self, workspace_id, **filters):
+        return self.repository.history(workspace_id, **filters)
 
-    def get(self, message_id: str) -> dict | None:
-        return self.repository.get(message_id)
+    def recent(self, workspace_id, limit=20):
+        return self.repository.history(workspace_id, page=1, page_size=limit)["items"]
+
+    def get(self, workspace_id, message_id):
+        return self.repository.get(workspace_id, message_id)
 
 
 def _load_yaml(path: Path) -> dict:
@@ -35,19 +47,29 @@ def _load_yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
-def build_analysis_service(settings) -> AnalysisService:
+def build_analysis_service(settings):
     security_config = _load_yaml(settings.security_config).get("security", {})
-    phishing_predictor = priority_predictor = None
+    phishing = priority = None
+
     if settings.phishing_artifact.exists():
         try:
             from src.ml.phishing.predict import load_phishing_model
-            phishing_predictor = SklearnPhishingPredictor(load_phishing_model(settings.phishing_artifact))
+
+            phishing = SklearnPhishingPredictor(load_phishing_model(settings.phishing_artifact))
         except Exception:
-            phishing_predictor = None
+            phishing = None
+
     if settings.priority_artifact.exists():
         try:
             from src.ml.priority.predict import load_priority_model
-            priority_predictor = SklearnPriorityPredictor(load_priority_model(settings.priority_artifact))
+
+            priority = SklearnPriorityPredictor(load_priority_model(settings.priority_artifact))
         except Exception:
-            priority_predictor = None
-    return AnalysisService(SecurityEngine(security_config, phishing_predictor, priority_predictor), SQLiteAnalysisRepository(settings.database_path))
+            priority = None
+
+    return AnalysisService(
+        SecurityEngine(security_config, phishing, priority),
+        build_repository(settings),
+        settings.model_version,
+        settings.policy_version,
+    )

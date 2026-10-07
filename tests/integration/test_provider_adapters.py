@@ -18,16 +18,23 @@ def test_oauth_state_and_pkce_helpers():
     assert len(state) >= 16 and len(challenge) >= 32
     assert validate_state(state, state)
     assert not validate_state(state, "attacker-state")
-    url = build_authorization_url(OAuthConfig("https://example.com/authorize", "client", "https://app.example/callback", ("mail.read",)), state)
+    url = build_authorization_url(
+        OAuthConfig("https://example.com/authorize", "client", "https://app.example/callback", ("mail.read",)),
+        state,
+        code_challenge=challenge,
+    )
     assert "client_id=client" in url and "state=" in url
+    assert "code_challenge=" in url and "code_challenge_method=S256" in url
 
 
 def test_gmail_read_only_adapter_parses_raw_mime():
     raw_b64 = base64.urlsafe_b64encode(RAW_EMAIL).decode().rstrip("=")
+
     def handler(request):
         if request.url.path.endswith("/messages"):
             return httpx.Response(200, json={"messages": [{"id": "m1"}]})
         return httpx.Response(200, json={"raw": raw_b64})
+
     adapter = GmailAdapter("token", transport=httpx.MockTransport(handler))
     try:
         assert adapter.list_message_ids(limit=1)[0].message_id == "m1"
@@ -47,7 +54,20 @@ def test_outlook_adapter_normalizes_graph_message():
     def handler(request):
         if request.url.path.endswith("/messages"):
             return httpx.Response(200, json={"value": [{"id": "m1"}]})
-        return httpx.Response(200, json={"id": "m1","subject":"Hello","from":{"emailAddress":{"address":"sender@example.com","name":"Sender"}},"toRecipients":[{"emailAddress":{"address":"user@example.com"}}],"ccRecipients":[],"body":{"contentType":"text","content":"Hello"},"internetMessageHeaders":[{"name":"Authentication-Results","value":"spf=pass"}],"receivedDateTime":"2026-10-07T00:00:00Z"})
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "subject": "Hello",
+                "from": {"emailAddress": {"address": "sender@example.com", "name": "Sender"}},
+                "toRecipients": [{"emailAddress": {"address": "user@example.com"}}],
+                "ccRecipients": [],
+                "body": {"contentType": "text", "content": "Hello"},
+                "internetMessageHeaders": [{"name": "Authentication-Results", "value": "spf=pass"}],
+                "receivedDateTime": "2026-10-07T00:00:00Z",
+            },
+        )
+
     adapter = OutlookAdapter("token", transport=httpx.MockTransport(handler))
     try:
         assert adapter.list_message_ids(limit=1)[0].message_id == "m1"
