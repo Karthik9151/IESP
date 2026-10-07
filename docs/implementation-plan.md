@@ -40,9 +40,9 @@ Current Render production services:
 - backend: `iesp-backend`
 - production branch: `main`
 
-## M8 — Documentation + Presentation
+## M8 — Documentation + Demonstration
 
-**READY.** README, architecture, API, deployment, threat-model, limitations, current-state and presentation/demo material are maintained for the final academic demonstration.
+**READY.** README, architecture, API, deployment, threat-model, limitations, current-state and product demonstration material are maintained as release documentation.
 
 ## End-to-end invariant
 
@@ -52,4 +52,4 @@ Provider adapter → Safe parsing → Security features + phishing evidence → 
 → Priority eligibility → P1 / P2 / P3 only for NON-PHISHING → FastAPI → React
 ```
 
-The project is complete only for the parts that have either been implemented or actually verified. External verification boundaries are recorded rather than fabricated.
+The release is complete only for the parts that have either been implemented or actually verified. External verification boundaries are recorded rather than fabricated.
