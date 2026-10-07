@@ -40,9 +40,10 @@ def _configured(cfg):
 
 async def _verified_ms_identity(id_token:str,cfg:dict):
     if not id_token: raise ValueError("missing id token")
-    issuer=f"https://login.microsoftonline.com/{cfg['tenant']}/v2.0"
     async with httpx.AsyncClient(timeout=10) as client:
         discovery=(await client.get(f"https://login.microsoftonline.com/{cfg['tenant']}/v2.0/.well-known/openid-configuration")).json()
+    issuer=discovery["issuer"]
+    async with httpx.AsyncClient(timeout=10) as client:
         jwks=(await client.get(discovery["jwks_uri"])).json()
     header=jwt.get_unverified_header(id_token)
     key=None
