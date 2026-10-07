@@ -28,6 +28,7 @@ from .schemas import (
     UserResponse, WorkspaceResponse, SUPPORTED_CLASSIFICATIONS,
 )
 from .service import AnalysisService, build_analysis_service
+from .oauth_routes import create_oauth_router
 from .settings import Settings
 
 LOGGER = logging.getLogger("iesp")
@@ -212,6 +213,8 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
     async def internal_error(request: Request, exc: Exception):
         LOGGER.error("request_failed request_id=%s error_type=%s", request.state.request_id, type(exc).__name__)
         return _error_response(request, "INTERNAL_ERROR", "IESP could not complete this request.", 500)
+
+    app.include_router(create_oauth_router(settings, service))
 
     @app.get("/health", response_model=HealthResponse)
     async def health():
