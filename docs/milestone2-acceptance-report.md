@@ -1,11 +1,11 @@
 # Milestone 2 Acceptance Report
 
-Canonical project state: development  
+Repository state: main  
 Date: 2026-10-07
 
 ## Implementation status
 
-M2 is implemented and has now crossed the real-data acceptance boundary through the authoritative model-release workflow. Its phishing pipeline includes the acceptance hardening added during the v0.3 development branch. The runner performs a deterministic second-training/inference check and reloads the saved artifact to verify prediction equivalence.
+M2 is implemented and has crossed the real-data acceptance boundary through the authoritative model-release workflow. Its phishing pipeline includes the acceptance hardening added during the v0.3 development branch. The runner performs a deterministic second-training/inference check and reloads the saved artifact to verify prediction equivalence.
 
 | Requirement | Status |
 |---|---|
@@ -37,7 +37,7 @@ The workflow:
 8. published `models-v1`;
 9. verified all seven expected release assets and the release manifest.
 
-Accepted M1 project fingerprint:
+Accepted M1 dataset fingerprint:
 
 `34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582`
 
@@ -47,13 +47,13 @@ Accepted splits: train 76,069; validation 16,300; test 16,301.
 
 M2 is accepted for the repository/runtime artifact pipeline based on the successful authoritative-data release execution above. This report does **not** reproduce or invent numeric metric values; the workflow-generated metric JSON files are the evidence artifacts.
 
-## Project milestone state
+## Milestone state
 
 - **M0 — Foundation:** repository structure, configuration, documentation, and baseline architecture.
 - **M1 — Dataset foundation:** MeAJOR validation, normalization, exact deduplication, deterministic stratified split, leakage/integrity checks, reproducibility, and acceptance documentation.
 - **M2 — Phishing ML:** TF-IDF + LinearSVC, leakage-safe training boundary, evaluation, prediction API, deterministic retraining, artifact integrity, and authoritative-data acceptance.
 - **M3 — Priority ML:** VADER + engineered urgency features + Logistic Regression with deterministic P1/P2/P3 proxy labels; metrics are proxy-policy agreement, not human urgency accuracy.
 - **M4 — Security engine:** safe email parsing, header/URL/attachment analysis, fail-closed decisions, explicit priority eligibility, and secret-safe logging.
-- **M5 — API layer:** versioned FastAPI analyze endpoint, health/readiness, strict schemas, API-key authentication/authorization boundary, request IDs, restrictive CORS, safe errors, and persistence abstraction.
+- **M5 — API layer:** versioned FastAPI analyze endpoint, health/readiness, strict schemas, server-side authentication/authorization boundary, request IDs, restrictive CORS, safe errors, and persistence abstraction.
 
-Branches are development history, not milestones. `v0.2` is identical to the original `main` state; `v0.3` was an intermediate M2 implementation branch; `development` is the consolidated implementation branch.
+Branches are development history, not milestones. `v0.2` is identical to the original `main` state; `v0.3` was an intermediate M2 implementation branch; `development` is historical consolidated implementation work, while `main` is the current release/reference branch.
