@@ -2,7 +2,7 @@ services:
   - type: web
     name: iesp-backend
     runtime: docker
-    branch: furnished-design
+    branch: main
     plan: free
     healthCheckPath: /ready
     autoDeployTrigger: checksPass
@@ -16,7 +16,7 @@ services:
       - key: IESP_SESSION_SECURE
         value: "true"
       - key: IESP_SESSION_SAMESITE
-        value: lax
+        value: none
       - key: IESP_ALLOWED_ORIGINS
         fromService:
           name: iesp-frontend
@@ -36,7 +36,7 @@ services:
   - type: web
     name: iesp-frontend
     runtime: static
-    branch: furnished-design
+    branch: main
     staticPublishPath: ./frontend/dist
     buildCommand: >-
       cd frontend &&
