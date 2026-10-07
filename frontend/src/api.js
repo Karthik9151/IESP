@@ -1,7 +1,7 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
 async function request(path, options = {}) {
-  const controller = new AbortController()
+  const controller = new AbortController()\n  const parentSignal = options.signal\n  if (parentSignal) parentSignal.addEventListener('abort', () => controller.abort(), { once: true })
   const timeoutMs = options.timeoutMs || 15000
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
   const headers = new Headers(options.headers || {})
