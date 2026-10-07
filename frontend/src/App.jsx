@@ -59,6 +59,7 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('iesp.sidebarCollapsed') === '1')
+  const [logoutBusy, setLogoutBusy] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -96,9 +97,15 @@ export default function App() {
   }
 
   const logout = async () => {
-    if (!window.confirm('Log out of IESP? Your current session will be ended.')) return
-    try { await api.logout() } finally {
-      setSession(null); setPage('overview'); setDetailId(null); setToast({ type: 'success', message: 'You have been signed out.' })
+    if (logoutBusy || !window.confirm('Log out of IESP? Your current session will be ended.')) return
+    setLogoutBusy(true)
+    try { await api.logout() } catch { /* Local auth state is cleared even if the server request fails. */ }
+    finally {
+      setSession(null)
+      setPage('overview')
+      setDetailId(null)
+      setSearch('')
+      setLogoutBusy(false)
     }
   }
 
@@ -148,7 +155,7 @@ export default function App() {
             <div className="callout-icon">✓</div>
             <div><strong>Trust boundary</strong><p>Email HTML, URLs and attachments stay inert and are analysed as untrusted data.</p></div>
           </div>
-          <button className="logout-button" type="button" onClick={logout}><span aria-hidden="true">↪</span> Logout</button>
+          <button className="logout-button" type="button" onClick={logout} disabled={logoutBusy} aria-busy={logoutBusy}><span aria-hidden="true">↪</span> {logoutBusy ? 'Signing out…' : 'Logout'}</button>
         </aside>
 
         <main className="content-shell">
@@ -164,6 +171,7 @@ export default function App() {
 
       <nav className="mobile-tabs" aria-label="Mobile navigation">
         {[NAV[0], NAV[1], NAV[2], NAV[5]].map((item) => <button key={item.id} className={currentPage === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span aria-hidden="true">{item.icon}</span><small>{item.id === 'help' ? 'More' : item.label}</small></button>)}
+        <button className="mobile-logout" type="button" onClick={logout} disabled={logoutBusy} aria-busy={logoutBusy}><span aria-hidden="true">↪</span><small>{logoutBusy ? 'Signing out' : 'Logout'}</small></button>
       </nav>
 
       {showOnboarding && (

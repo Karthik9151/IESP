@@ -81,7 +81,11 @@ kbd{display:inline-grid;place-items:center;min-width:22px;min-height:22px;paddin
 .sidebar-callout strong{font-size:11px}
 .sidebar-callout p{margin:4px 0 0;font-size:10px;color:var(--muted);line-height:1.45}
 .logout-button{margin-top:auto;display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 12px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted);font-size:12px;font-weight:800;text-align:left}
-.logout-button:hover{color:var(--phishing);border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.05)}
+.logout-button:hover:not(:disabled){color:var(--phishing);border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.05)}
+.logout-button:disabled{cursor:wait;opacity:.62}
+.mobile-logout{color:var(--muted)}
+.mobile-logout:hover:not(:disabled),.mobile-logout:focus-visible{color:var(--phishing)}
+.mobile-logout:disabled{cursor:wait;opacity:.62}
 
 .content-shell{min-width:0;padding:28px}
 .page-stack{width:min(1280px,100%);margin:0 auto}
@@ -440,10 +444,11 @@ textarea{resize:vertical;line-height:1.5}
   .dashboard-grid,.analysis-workspace,.report-grid,.settings-grid,.help-grid{grid-template-columns:1fr}
   .analysis-progress{grid-column:auto}
   .help-pipeline{grid-template-columns:repeat(2,1fr)}
-  .mobile-tabs{position:fixed;left:10px;right:10px;bottom:10px;z-index:70;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:5px;border:1px solid var(--border);border-radius:14px;background:rgba(17,24,39,.94);backdrop-filter:blur(12px);box-shadow:var(--shadow)}
+  .mobile-tabs{position:fixed;left:10px;right:10px;bottom:10px;z-index:70;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:5px;border:1px solid var(--border);border-radius:14px;background:rgba(17,24,39,.94);backdrop-filter:blur(12px);box-shadow:var(--shadow)}
   :root[data-theme="light"] .mobile-tabs{background:rgba(255,255,255,.95)}
   .mobile-tabs button{display:grid;place-items:center;gap:3px;min-height:48px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14px}
   .mobile-tabs button.active{background:rgba(34,211,238,.08);color:var(--cyan)}
+.mobile-tabs button.mobile-logout{color:var(--muted)}
   .mobile-tabs small{font-size:8px;font-weight:800}
 }
 @media(max-width:700px){
