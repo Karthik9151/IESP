@@ -164,6 +164,17 @@ jobs:
               --title "IESP model artifacts v1" \
               --notes "Generated from the accepted MeAJOR M1 contract. Dataset stays outside GitHub; only trained runtime artifacts and verification manifest are published."
 
+          for asset in \
+            phishing_pipeline.joblib \
+            phishing-metadata.json \
+            phishing_metrics.json \
+            priority_pipeline.joblib \
+            priority-metadata.json \
+            priority_metrics.json \
+            model-manifest.json; do
+            gh release delete-asset "$RELEASE_TAG" "$asset" --yes >/dev/null 2>&1 || true
+          done
+
           gh release upload "$RELEASE_TAG" \
             models/phishing/phishing_pipeline.joblib \
             "models/phishing/metadata.json#phishing-metadata.json" \
@@ -171,8 +182,7 @@ jobs:
             models/priority/priority_pipeline.joblib \
             "models/priority/metadata.json#priority-metadata.json" \
             models/priority/priority_metrics.json \
-            models/model-manifest.json \
-            --clobber
+            models/model-manifest.json
 
       - name: Verify published release assets
         env:
