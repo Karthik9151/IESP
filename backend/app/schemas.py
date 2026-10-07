@@ -190,6 +190,11 @@ class ReportSummaryResponse(StrictModel):
     high_risk_items: list[RecentAnalysisItem]
 
 
+class ReportExportResponse(StrictModel):
+    generated_at: datetime
+    items: list[RecentAnalysisItem]
+
+
 class HealthResponse(StrictModel):
     status: Literal["ok"]
 
