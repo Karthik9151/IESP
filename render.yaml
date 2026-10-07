@@ -2,6 +2,7 @@ services:
   - type: web
     name: iesp-backend
     runtime: docker
+    branch: furnished-design
     plan: free
     healthCheckPath: /ready
     autoDeployTrigger: checksPass
@@ -35,6 +36,7 @@ services:
   - type: web
     name: iesp-frontend
     runtime: static
+    branch: furnished-design
     staticPublishPath: ./frontend/dist
     buildCommand: >-
       cd frontend &&
