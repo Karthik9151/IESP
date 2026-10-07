@@ -101,7 +101,7 @@ def test_stratified_split_is_conserved_and_leakage_free():
 
 
 def test_fingerprints_are_deterministic():
-    rows = [make_row(0, "a"), make_row(1, "b")]
+    rows = [make_row(index % 2, f"body-{index}") for index in range(100)]
     frame, _ = prepare_dataset(pd.DataFrame(rows))
     assert project_fingerprint(frame) == project_fingerprint(frame.copy())
     train, validation, test = split_dataset(frame, random_state=42)
