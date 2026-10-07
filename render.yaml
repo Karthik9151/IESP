@@ -39,7 +39,7 @@ services:
     name: iesp-frontend
     runtime: static
     staticPublishPath: ./frontend/dist
-    buildCommand: cd frontend && npm ci && npm run build
+    buildCommand: cd frontend && npm install --no-audit --no-fund && npm run build
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
