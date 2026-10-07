@@ -49,21 +49,25 @@ The repository Blueprint defines:
 
 1. Backend: Render Web Service using the repository Dockerfile.
 2. Database: Render Postgres.
-3. Frontend: Render Static Site from `frontend/`.
+3. Frontend: Render Static Site from `frontend/dist`.
 
-Backend environment requirements:
+Production backend settings include:
 
 - `IESP_ENVIRONMENT=production`
 - `DATABASE_URL` from Render Postgres
 - `IESP_SESSION_SECURE=true`
-- `IESP_SESSION_SAMESITE=lax`
-- `IESP_ALLOWED_ORIGINS` set to the exact HTTPS frontend origin
+- `IESP_SESSION_SAMESITE=none`
+- exact HTTPS CORS origin wiring from the frontend service
 - bounded request/email limits
 - existing security/model configuration paths
 
 No API key is placed in frontend build variables or browser storage. `VITE_API_BASE_URL` is public configuration only.
 
-The current Blueprint uses Free Render plans for the backend and database. Render documents Free instances as suitable for testing/hobby use rather than production workloads, and Free Postgres expires after 30 days. A paid production plan is therefore required for a durable production deployment.
+Current production frontend:
+- service display name: `iesp-home`
+- Render-managed URL: `https://iesp-frontend.onrender.com`
+
+The existing Render subdomain name does not need to match the service display name for the application to work.
 
 ## CI
 
@@ -71,4 +75,4 @@ GitHub Actions provides blocking gates for Python compilation/full tests, depend
 
 ## External verification
 
-Render/production PostgreSQL/browser E2E and live provider OAuth must remain explicitly not verified until observed in their real environments.
+Only claim production browser/API or live provider OAuth success after observing it in the real deployed/provider environment and recording the result.
