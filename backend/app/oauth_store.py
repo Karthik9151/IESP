@@ -11,8 +11,9 @@ from typing import Any
 from cryptography.fernet import Fernet
 
 class OAuthStore:
-    def __init__(self, settings):
+    def __init__(self, settings, *, force_sqlite: bool = False):
         self.settings = settings
+        self.force_sqlite = force_sqlite
         raw_key = os.getenv("IESP_OAUTH_ENCRYPTION_KEY", "")
         if not raw_key:
             provider_configured = any(os.getenv(k) for k in ("GOOGLE_CLIENT_ID","GOOGLE_CLIENT_SECRET","MICROSOFT_CLIENT_ID","MICROSOFT_CLIENT_SECRET"))
@@ -20,7 +21,7 @@ class OAuthStore:
                 raise ValueError("IESP_OAUTH_ENCRYPTION_KEY is required when provider OAuth is configured")
             raw_key = base64.urlsafe_b64encode(hashlib.sha256(b"iesp-development-oauth-key").digest()).decode()
         self.fernet = Fernet(raw_key.encode() if isinstance(raw_key, str) else raw_key)
-        self.is_pg = settings.database_url.startswith(("postgres://", "postgresql://"))
+        self.is_pg = (not force_sqlite) and settings.database_url.startswith(("postgres://", "postgresql://"))
         self._init_schema()
 
     def _connect(self):

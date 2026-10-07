@@ -59,7 +59,7 @@ async def _verified_ms_identity(id_token:str,cfg:dict):
 
 def create_oauth_router(settings, service):
     router=APIRouter(prefix="/api/v1/oauth",tags=["oauth"])
-    store=OAuthStore(settings)
+    store=OAuthStore(settings, force_sqlite=service.repository.__class__.__name__.startswith("SQLite"))
     frontend=os.getenv("IESP_FRONTEND_URL",settings.allowed_origins[0] if settings.allowed_origins else "/")
 
     @router.get("/{provider}/start")
