@@ -5,7 +5,6 @@ import re
 import time
 import uuid
 from email.utils import parseaddr
-from typing import Annotated
 
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -130,29 +129,25 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
             return JSONResponse(status_code=503, content=ReadyResponse(status="not_ready", blockers=blockers).model_dump())
         return ReadyResponse(status="ready", blockers=[])
 
-    @app.post("/api/v1/analyze", response_model=AnalysisResponse)
-    async def analyze(request: Request, payload: EmailRequest, context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
-        authorize_analysis(context)
+    @app.post("/api/v1/analyze", response_model=AnalysisResponse, dependencies=[Depends(require_api_key(settings))])
+    async def analyze(request: Request, payload: EmailRequest):
         started = time.perf_counter()
         result = service.analyze(_to_email(payload), request.state.request_id)
         LOGGER.info("analysis_completed request_id=%s message_id=%s decision=%s duration_ms=%.2f", request.state.request_id, result.message_id, result.security.classification.value, (time.perf_counter() - started) * 1000)
         return _response(result)
 
-    @app.get("/api/v1/stats", response_model=StatsResponse)
-    async def stats(context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
-        authorize_analysis(context)
+    @app.get("/api/v1/stats", response_model=StatsResponse, dependencies=[Depends(require_api_key(settings))])
+    async def stats():
         return StatsResponse(**service.stats())
 
-    @app.get("/api/v1/recent")
-    async def recent(context: Annotated[AuthorizationContext, Depends(require_api_key(settings))], limit: int = 20):
-        authorize_analysis(context)
+    @app.get("/api/v1/recent", dependencies=[Depends(require_api_key(settings))])
+    async def recent(limit: int = 20):
         if limit < 1 or limit > 100:
             raise HTTPException(status_code=422, detail={"code": "INVALID_LIMIT", "message": "Limit must be 1-100."})
         return {"items": service.recent(limit)}
 
-    @app.get("/api/v1/analysis/{message_id}")
-    async def analysis(message_id: str, context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
-        authorize_analysis(context)
+    @app.get("/api/v1/analysis/{message_id}", dependencies=[Depends(require_api_key(settings))])
+    async def analysis(message_id: str):
         result = service.get(message_id)
         if result is None:
             raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "Analysis not found."})
