@@ -19,14 +19,14 @@ services:
         value: none
       - key: IESP_ALLOWED_ORIGINS
         fromService:
-          name: iesp-frontend
+          name: iesp-home
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       - key: IESP_OAUTH_ENCRYPTION_KEY
         generateValue: true
       - key: IESP_FRONTEND_URL
         fromService:
-          name: iesp-frontend
+          name: iesp-home
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       - key: IESP_MAX_REQUEST_BYTES
@@ -55,7 +55,7 @@ services:
         value: common
 
   - type: web
-    name: iesp-frontend
+    name: iesp-home
     runtime: static
     branch: main
     staticPublishPath: ./frontend/dist
