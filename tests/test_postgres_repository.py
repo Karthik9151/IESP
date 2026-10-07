@@ -202,10 +202,17 @@ def test_postgres_authentication_sessions_and_expiry(repo):
     weak = client.post("/api/v1/auth/register", json={"email": f"{uuid4().hex}@example.com", "password": "weak"})
     assert weak.status_code == 422
 
+    malformed = client.post("/api/v1/auth/register", json={"email": "not-an-email", "password": password})
+    assert malformed.status_code == 422
+
     wrong = client.post("/api/v1/auth/login", json={"email": email, "password": "incorrect-password"})
     assert wrong.status_code == 401
     assert "incorrect-password" not in wrong.text
     assert password not in wrong.text
+
+    client.cookies.set("iesp_session", "invalid-session-value")
+    assert client.get("/api/v1/auth/me").status_code == 401
+    client.cookies.clear()
 
     login = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     assert login.status_code == 200
