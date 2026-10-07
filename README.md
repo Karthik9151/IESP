@@ -88,7 +88,7 @@ Email content is treated only as untrusted data. Attachments are metadata-only a
 - `GET /api/v1/recent?limit=20`
 - `GET /api/v1/analysis/{message_id}`
 
-Analysis requires `X-API-Key` unless authentication is explicitly disabled in development/test mode.
+Analysis requires `session cookie` unless authentication is explicitly disabled in development/test mode.
 
 ## Run locally
 
