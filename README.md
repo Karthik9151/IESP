@@ -42,11 +42,11 @@ Priority is never returned for PHISHING, SUSPICIOUS, or REVIEW REQUIRED.
 |---|---|---|
 | M0 Repository audit + architecture | VERIFIED | Repository structure, architecture, workflow and source-of-truth docs updated |
 | M1 Dataset + ML pipeline | VERIFIED | Accepted fingerprint/splits and reproducible pipeline are preserved |
-| M2 Security analysis engine / phishing ML | PARTIALLY VERIFIED | Code and tests present; real-data model run requires authoritative MeAJOR file in the execution environment |
+| M2 Security analysis engine / phishing ML | VERIFIED | Authoritative MeAJOR training/validation completed by model-release workflow #16; verified `models-v1` artifacts and manifest published |
 | M3 Backend + database | VERIFIED | FastAPI, validation, API-key auth, SQLite metadata persistence, and API regression tests |
 | M4 React dashboard | IMPLEMENTED | React/Vite UI, API integration, responsive states, safe text rendering |
 | M5 Gmail / Outlook integration | IMPLEMENTED | Read-only provider adapters + OAuth state/PKCE helpers + mocked adapter tests; live provider credentials not tested here |
-| M6 Testing + security testing | IMPLEMENTED / PARTIALLY VERIFIED | Security and integration test suites are included; full dependency matrix is CI-driven |
+| M6 Testing + security testing | VERIFIED by CI #47 | Critical backend tests, regression job, dependency audit, frontend tests/build, and secret scan all passed |
 | M7 Deployment | IMPLEMENTED / PARTIALLY VERIFIED | Docker, Compose, CI, dependency audit, secret scan; external deployment not executed |
 | M8 Documentation + presentation | IMPLEMENTED | Project docs, demo runbook, methodology, threat model, deployment and presentation outline |
 
@@ -60,6 +60,12 @@ Priority is never returned for PHISHING, SUSPICIOUS, or REVIEW REQUIRED.
 - 70/15/15 stratified split, random state 42
 - exact full-record deduplication and cross-split fingerprint leakage checks
 - authoritative dataset intentionally excluded from GitHub
+
+## Verified model release
+
+The current model release is `models-v1`. GitHub Actions model-release workflow **#16** completed successfully from commit `1b84ff5f2a8d33b22cab6294b085d97e8964cb21`.
+
+The workflow downloaded the authoritative MeAJOR dataset, verified the accepted M1 checksum/fingerprint/splits, trained both runtime models, published the release assets, and verified the expected release assets and manifest.
 
 ## ML baselines
 

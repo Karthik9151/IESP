@@ -12,7 +12,7 @@ The project follows the master completion guide and uses exactly one active deve
 
 ## M2 — Security Analysis Engine
 
-**PARTIALLY VERIFIED.** Safe MIME/header parsing, structural URL analysis, metadata-only attachment policy, HTML structural analysis, explainable reasons, fail-closed decisioning, explicit priority eligibility, and the TF-IDF + LinearSVC phishing baseline are integrated. Exact real-data acceptance remains pending until the accepted MeAJOR file is available.
+**VERIFIED.** Safe MIME/header parsing, structural URL analysis, metadata-only attachment policy, HTML structural analysis, explainable reasons, fail-closed decisioning, explicit priority eligibility, and the TF-IDF + LinearSVC phishing baseline are integrated. Authoritative MeAJOR training and validation completed successfully in model-release workflow #16, which enforced the accepted M1 fingerprint/split contract and verified the published runtime artifacts.
 
 ## M3 — Backend + Database
 
@@ -28,11 +28,11 @@ The project follows the master completion guide and uses exactly one active deve
 
 ## M6 — Testing + Security Testing
 
-**IMPLEMENTED / PARTIALLY VERIFIED.** API, persistence, provider, adversarial security and frontend invariant tests are included. CI runs compilation/tests, frontend build/test, dependency auditing and secret scanning.
+**VERIFIED by CI #47.** API, persistence, provider, adversarial security and frontend invariant tests are included. CI #47 passed critical backend tests, the non-blocking regression job, dependency auditing, frontend tests/build, and secret scanning.
 
 ## M7 — Deployment
 
-**IMPLEMENTED / PARTIALLY VERIFIED.** Backend/frontend Dockerfiles, Compose, `.env.example`, `.dockerignore` and GitHub Actions are included. External deployment and local Docker execution are not claimed.
+**IMPLEMENTED / PARTIALLY VERIFIED.** Backend/frontend Dockerfiles, Compose, `.env.example`, `.dockerignore` and GitHub Actions are included. The published `models-v1` release is verified; external deployment and local Docker execution are not claimed.
 
 ## M8 — Documentation + Presentation
 

@@ -19,6 +19,8 @@ The production backend requires both ML runtime artifacts.
 
 `.github/workflows/build-model-release.yml` downloads the authoritative MeAJOR release from Zenodo, verifies its checksum and accepted M1 contract, trains both models, verifies the artifacts, and publishes them to the public GitHub Release `models-v1`.
 
+The authoritative model-release workflow **#16** completed successfully from commit `1b84ff5f2a8d33b22cab6294b085d97e8964cb21`.
+
 The workflow remains manually runnable and also runs automatically on `main` when the model-building workflow, M1 pipeline, ML code/configuration, or ML dependencies change.
 
 The dataset itself is never committed to GitHub.
@@ -43,7 +45,7 @@ If `models-v1` does not yet exist, the image can still be built, but the contain
 
 The Render backend service uses the repository Dockerfile. Build success no longer depends on the model release being present.
 
-After `models-v1` is published, deploy/restart the backend so the startup bootstrap can download and verify the artifacts.
+The published `models-v1` release is verified. Deploy/restart the backend so the startup bootstrap can download and verify the artifacts.
 
 After deployment, verify:
 
@@ -54,7 +56,7 @@ The deployed service should not be considered ready until the second response is
 
 ## CI
 
-GitHub Actions performs Python compilation/tests, frontend tests/build, dependency auditing and secret scanning.
+GitHub Actions performs Python compilation/tests, frontend tests/build, dependency auditing and secret scanning. CI #47 is the current green baseline.
 
 ## Free-hosting limitation
 
@@ -62,4 +64,4 @@ Render's free filesystem is ephemeral, so SQLite data is not durable across rest
 
 ## Status
 
-Model-release automation is IMPLEMENTED. External deployment remains PENDING until the model-release workflow and Render readiness are actually observed to succeed.
+Model-release automation is **VERIFIED** by workflow #16. External deployment remains **PENDING** until Render health/readiness is actually observed to succeed.

@@ -5,7 +5,7 @@ Date: 2026-10-07
 
 ## Implementation status
 
-M2 is implemented in the consolidated project state. Its phishing pipeline includes the acceptance hardening added during the v0.3 development branch. The runner now performs a deterministic second-training/inference check and reloads the saved artifact to verify prediction equivalence.
+M2 is implemented and has now crossed the real-data acceptance boundary through the authoritative model-release workflow. Its phishing pipeline includes the acceptance hardening added during the v0.3 development branch. The runner performs a deterministic second-training/inference check and reloads the saved artifact to verify prediction equivalence.
 
 | Requirement | Status |
 |---|---|
@@ -17,26 +17,41 @@ M2 is implemented in the consolidated project state. Its phishing pipeline inclu
 | Accuracy/Precision/Recall/F1 | PASS |
 | ROC-AUC/PR-AUC | PASS |
 | Confusion matrix + TN/FP/FN/TP | PASS |
-| Artifact persistence, SHA-256 metadata, and reload equivalence | Implemented |
-| Real MeAJOR training run | BLOCKED: source Parquet unavailable |
-| Real held-out metrics | NOT CLAIMED |
-| Exact accepted M1 fingerprint re-verification here | BLOCKED |
+| Artifact persistence, SHA-256 metadata, and reload equivalence | PASS by release workflow |
+| Real MeAJOR training run | PASS — model-release workflow #16 |
+| Real held-out metrics | PRODUCED by workflow and published as release assets |
+| Exact accepted M1 fingerprint re-verification | PASS — release manifest enforced the accepted fingerprint and split sizes |
 
-## Acceptance boundary
+## Acceptance evidence
 
-M2 is implemented but not fully research-accepted until the exact accepted M1 dataset is available and the fingerprint, split counts, real training, validation/test metrics, deterministic rerun and artifact save/load evidence are produced. No real-data metric is fabricated.
+Authoritative model-release workflow **#16** ran from commit `1b84ff5f2a8d33b22cab6294b085d97e8964cb21` and completed successfully.
+
+The workflow:
+1. downloaded `meajor_cleaned_preprocessed.parquet.gzip` from Zenodo record `18471483`;
+2. verified MD5 `78e397ad8447bcdba5a98097921ba8bd`;
+3. ran the accepted M1 dataset pipeline;
+4. trained and validated the phishing model;
+5. trained the priority model;
+6. built the model manifest;
+7. checked artifact size limits;
+8. published `models-v1`;
+9. verified all seven expected release assets and the release manifest.
 
 Accepted M1 project fingerprint:
-34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582
+
+`34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582`
 
 Accepted splits: train 76,069; validation 16,300; test 16,301.
 
+## Acceptance boundary
+
+M2 is accepted for the repository/runtime artifact pipeline based on the successful authoritative-data release execution above. This report does **not** reproduce or invent numeric metric values; the workflow-generated metric JSON files are the evidence artifacts.
 
 ## Project milestone state
 
 - **M0 — Foundation:** repository structure, configuration, documentation, and baseline architecture.
 - **M1 — Dataset foundation:** MeAJOR validation, normalization, exact deduplication, deterministic stratified split, leakage/integrity checks, reproducibility, and acceptance documentation.
-- **M2 — Phishing ML:** TF-IDF + LinearSVC, leakage-safe training boundary, evaluation, prediction API, deterministic retraining, artifact integrity, and authoritative-data acceptance runner. Real-data acceptance is still pending.
+- **M2 — Phishing ML:** TF-IDF + LinearSVC, leakage-safe training boundary, evaluation, prediction API, deterministic retraining, artifact integrity, and authoritative-data acceptance.
 - **M3 — Priority ML:** VADER + engineered urgency features + Logistic Regression with deterministic P1/P2/P3 proxy labels; metrics are proxy-policy agreement, not human urgency accuracy.
 - **M4 — Security engine:** safe email parsing, header/URL/attachment analysis, fail-closed decisions, explicit priority eligibility, and secret-safe logging.
 - **M5 — API layer:** versioned FastAPI analyze endpoint, health/readiness, strict schemas, API-key authentication/authorization boundary, request IDs, restrictive CORS, safe errors, and persistence abstraction.
