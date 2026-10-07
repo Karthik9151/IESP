@@ -2,51 +2,54 @@
 
 **Audit date:** 2026-10-07  
 **Repository:** `Karthik9151/IESP`  
-**Working branch:** `furnished-design`
+**Release branch:** `main`
 
-## Hardening status
+## Release status
 
 | Area | Status | Notes |
 |---|---|---|
-| M0–M2 dataset/ML/security foundations | PRESERVED | Existing domain models and security engine remain the source of truth |
-| Backend compatibility | HARDENED | Service/API now call the real engine/model APIs |
+| M0–M2 dataset/ML/security foundations | VERIFIED | Existing domain models, security engine, dataset contract and model-release artifacts are preserved |
+| Backend compatibility | HARDENED | FastAPI calls the real engine/model APIs |
 | Authentication | HARDENED | Server-side session + HTTP-only cookie; browser API-key path removed |
 | Authorization | HARDENED | Analysis/history/stats/report lookups are workspace-scoped |
-| SQLite repository | HARDENED | Sender/recipients/subject/model score/version metadata are persisted |
-| PostgreSQL repository | VERIFIED | Real PostgreSQL 16 CI service exercised schema, auth/session/expiry, metadata persistence, workspace isolation, and transaction rollback |
-| Error contract | HARDENED | Nested error object with request ID and optional retry metadata |
-| Rate limiting | IMPLEMENTED | Per-user in-memory 429 + Retry-After; distributed store remains future work |
-| `.eml` backend | HARDENED | Bounded stdlib MIME parsing, no execution/network access |
-| Frontend | HARDENED | Analyze/.eml/history/dashboard/reports/settings feature structure |
-| Result transparency | HARDENED | Policy risk score is distinct from ML decision margin |
-| Accessibility/mobile | HARDENED | Semantic labels, focus treatment, 44px-class controls, responsive layouts |
-| Security headers/CSP | HARDENED | Nginx + Render headers; production HSTS |
-| CI/CD | HARDENED | Blocking test/build/security/contract jobs |
+| SQLite repository | HARDENED | Analysis metadata and security results are persisted |
+| PostgreSQL repository | VERIFIED | PostgreSQL CI coverage exercises schema, auth/session/expiry, metadata persistence, workspace isolation and rollback |
+| Error contract | HARDENED | Structured errors include request ID and optional retry metadata |
+| Rate limiting | IMPLEMENTED | Per-user in-memory 429 + Retry-After; distributed rate limiting remains future infrastructure |
+| `.eml` backend | HARDENED | Bounded stdlib MIME parsing with no execution or automatic network access |
+| Frontend | HARDENED | Analyze/.eml/history/dashboard/reports/settings flows |
+| Result transparency | HARDENED | Security policy risk score is distinct from ML decision margin |
+| Accessibility/mobile | HARDENED | Semantic labels, focus treatment and responsive layouts |
+| Security headers/CSP | HARDENED | Render security headers and restrictive CSP are configured |
+| CI/CD | HARDENED | Blocking test/build/security/contract jobs are configured |
 | Model release | PRESERVED | Existing `models-v1` bootstrap and verification flow retained |
-| OAuth helpers | HARDENED | PKCE verifier/challenge can now be wired into authorization URLs with S256 |
-| External deployment | NOT VERIFIED | Live Render endpoint is unreachable from the current tool environment |
-| Live provider OAuth | NOT VERIFIED | Application currently has adapters/helpers but no provider OAuth HTTP routes or persisted provider-token flow |
+| OAuth | IMPLEMENTED | Gmail/Microsoft routes, state binding, PKCE and encrypted provider-token storage are present; live external consent is environment-dependent |
+| Production Render deployment | VERIFIED | Backend and frontend services are configured on Render and the production frontend is live |
+| Manual UI smoke flow | VERIFIED | Registration, login, dashboard, analysis, result display, history, reports, settings, logout, invalid login and invalid analysis were manually exercised |
+
+## Production Render state
+
+- Frontend service display name: `iesp-home`
+- Existing Render-managed frontend URL: `https://iesp-frontend.onrender.com`
+- Backend URL: `https://iesp-backend.onrender.com`
+- Both production services track `main`
+- Frontend build command: `cd frontend && npm ci && npm run build`
+- Frontend publish directory: `./frontend/dist`
+- Backend health/readiness paths: `/health` and `/ready`
+
+The frontend service display name is `iesp-home`, while the existing Render subdomain remains `iesp-frontend.onrender.com`. The URL difference is a Render naming/subdomain detail, not an application defect.
 
 ## Verification evidence
 
-- Latest CI run **37589024380** on `furnished-design`: PASS.
-- Backend/security: PASS — `pytest -q -ra`.
-- Frontend: PASS — `npm ci`, `npm test`, `npm run build`, and `npm audit --audit-level=high`.
-- Python dependency audit: PASS — `pip-audit -r requirements-ml.txt -r requirements-api.txt`; dependency consistency: PASS — `python -m pip check`.
-- Secret scan: PASS — repository and full Git history.
-- API contract: PASS — generated OpenAPI route, schema, error, pagination, report, and session-cookie security validation.
-- PostgreSQL: PASS — five real integration tests against a PostgreSQL 16 service.
-- Docker: PASS — backend and frontend images built successfully.
-- Browser E2E, live Render deployment, production PostgreSQL, and live provider OAuth remain unverified.
+- Frontend hardening CI completed successfully before merge.
+- PR #14 from `final-design` to `main` was merged.
+- Production frontend and backend Render services are configured against `main`.
+- Manual UI smoke testing covered the core authenticated workflow and negative cases.
 
-## Known repository constraints
+## Remaining verification boundary
 
-1. `frontend/package-lock.json` is committed and deterministic Node dependency installation is enforced with `npm ci` in CI, the frontend image, and Render.
-2. Live Render deployment and production browser/API behavior are not verified in this environment.
-3. Live Gmail/Microsoft OAuth requires external application registration, consent, and an application-level OAuth route/token lifecycle that is not currently present in the backend.
-4. Legacy analysis rows from the pre-hardening schema may retain empty sender/subject values because those values were never stored. New analyses persist actual metadata.
-5. The current Render Blueprint uses Free backend/database plans; this is unsuitable for a durable production service because Render documents Free Postgres as expiring after 30 days.
+Live Gmail/Microsoft provider consent should only be claimed after a real provider-console configuration has been exercised end-to-end. The same rule applies to any new browser-E2E or production API measurements: record observed results rather than inferring them.
 
 ## Security invariants
 
-Security runs before priority. Priority is only eligible after `NON-PHISHING`. Parser failures and critical findings fail closed. URLs are never automatically fetched. Attachments are metadata-only. HTML is never rendered as trusted DOM. Secrets and raw email bodies are excluded from analysis logs.
+Security runs before priority. Priority is only eligible after `NON-PHISHING`. Parser failures and critical findings fail closed. URLs are never automatically fetched. Attachments are metadata-only. HTML is never rendered as trusted DOM. Secrets, session tokens and raw email bodies are excluded from analysis logs.
