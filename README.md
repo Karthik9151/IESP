@@ -2,7 +2,7 @@
 
 ## Intelligent Email Security & Prioritization System
 
-IESP is a security-first academic cybersecurity SaaS prototype that combines deterministic email-security analysis, phishing ML evidence, transparent priority scoring, a FastAPI backend, a React dashboard, PostgreSQL persistence, and read-only Gmail/Microsoft Graph integrations.
+IESP is a security-first email security platform that combines deterministic email-security analysis, phishing ML evidence, transparent priority scoring, a FastAPI backend, a React dashboard, PostgreSQL persistence, and read-only Gmail/Microsoft Graph integrations.
 
 ## Architecture
 
@@ -50,7 +50,7 @@ Render is configured from `render.yaml` and pins both the backend and frontend s
 | M5 Gmail / Microsoft integration | IMPLEMENTED | Provider OAuth routes, state binding, PKCE, encrypted token storage, read-only adapters |
 | M6 Testing + security testing | HARDENED | Backend/frontend/security/contract tests and dependency/secret checks are part of CI |
 | M7 Deployment | HARDENED | Docker, Render Blueprint, health/readiness checks, production environment validation |
-| M8 Documentation + presentation | READY | README, demo flow, architecture explanation, and viva material can be derived from this implementation |
+| M8 Documentation + demonstration | READY | README, demonstration flow, architecture explanation, and operational documentation are maintained |
 
 ## Machine-learning baseline
 
@@ -60,7 +60,7 @@ TF-IDF word unigrams/bigrams + LinearSVC. The SVM `decision_function` value is a
 
 ### Priority
 
-VADER sentiment + engineered email features + Logistic Regression. P1/P2/P3 are project proxy labels, not human-annotated urgency ground truth.
+VADER sentiment + engineered email features + Logistic Regression. P1/P2/P3 are proxy labels, not human-annotated urgency ground truth.
 
 ## Security controls
 
@@ -114,7 +114,7 @@ VADER sentiment + engineered email features + Logistic Regression. P1/P2/P3 are 
 - `GET /health`
 - `GET /ready`
 
-## Live demo
+## Live deployment
 
 Production frontend: `https://iesp-frontend.onrender.com`  
 Render service display name: `iesp-home`  
@@ -124,15 +124,15 @@ The Render service is named `iesp-home`, while its existing Render-managed subdo
 
 For a repeatable demonstration, use the production frontend URL above and a prepared `.eml` sample.
 
-## .eml demo workflow
+## .eml workflow
 
 IESP accepts bounded `.eml` files. The browser checks the extension and size before submission, while the backend performs safe MIME parsing. Submitted HTML is never rendered. Analysis results store metadata/results rather than raw message bodies.
 
-A simple demo file can contain headers such as:
+A simple test file can contain headers such as:
 
 ```text
 From: security-alert@example.com
-To: student@example.com
+To: user@example.com
 Subject: Urgent account verification
 
 Your account requires verification.
@@ -204,9 +204,9 @@ npm run dev
 
 No API key is required by browser code. Authentication is established through the HTTP-only session cookie.
 
-## Demo / presentation flow
+## Product demonstration flow
 
-Use this order for a 5–8 minute college demo:
+Use this order for a repeatable technical demonstration:
 
 ```text
 1. Open dashboard
@@ -229,13 +229,13 @@ Recommended talking points:
 - Authentication: server-side sessions with HTTP-only cookies.
 - OAuth: state + PKCE + server-side encrypted token storage.
 - ML limitation: SVM margin is evidence/ranking, not a probability.
-- Priority limitation: P1/P2/P3 are proxy project labels.
+- Priority limitation: P1/P2/P3 are proxy labels.
 - Deployment: React frontend + FastAPI backend + PostgreSQL on Render.
 
 ## Research integrity
 
 Only claim results that were actually observed. Do not present model accuracy, F1, ROC-AUC, provider-success, deployment-success, or security-test outcomes unless the corresponding execution was run and recorded.
 
-## License / academic use
+## Operational considerations
 
-IESP is presented as an academic cybersecurity project and demonstration platform. Production use would require additional operational controls such as stronger secret management, monitoring/alerting, privacy/legal review, and a production-grade rate-limit/session infrastructure.
+The current release is suitable for controlled deployments and technical evaluation. Broader production operation would require additional controls such as enterprise-grade secret management, monitoring/alerting, privacy/legal review, and distributed rate-limit/session infrastructure.
