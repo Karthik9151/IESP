@@ -1,50 +1,58 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { stateClass } from '../../lib/security'
+import { stateClass, verdictMeta } from '../../lib/security'
 
 const classifications = ['', 'PHISHING', 'SUSPICIOUS', 'REVIEW REQUIRED', 'NON-PHISHING']
 
-export default function HistoryPage({ onOpenAnalysis }) {
-  const [filters, setFilters] = useState({ q: '', classification: '', min_risk: '', max_risk: '', date_from: '', date_to: '', sort_by: 'created_at', sort_order: 'desc' })
+export default function HistoryPage({ onOpenAnalysis, initialSearch = '' }) {
+  const [filters, setFilters] = useState({ q: initialSearch, classification: '', min_risk: '', max_risk: '', date_from: '', date_to: '', sort_by: 'created_at', sort_order: 'desc' })
   const [data, setData] = useState({ items: [], total: 0, page: 1, page_size: 25, pages: 0 })
   const [status, setStatus] = useState({ busy: true, error: '' })
   const [page, setPage] = useState(1)
   const query = useMemo(() => ({ ...filters, page, page_size: 25 }), [filters, page])
 
   useEffect(() => {
-    let active = true
+    if (initialSearch && filters.q !== initialSearch) setFilters((current) => ({ ...current, q: initialSearch }))
+  }, [initialSearch])
+
+  useEffect(() => {
     const controller = new AbortController()
     setStatus({ busy: true, error: '' })
     api.history(query, controller.signal)
-      .then(nextData => { if (active) setData(nextData) })
-      .catch(error => { if (active && error.code !== 'CANCELLED') setStatus({ busy: false, error: error.message }) })
-      .finally(() => { if (active) setStatus((current) => ({ ...current, busy: false })) })
-    return () => { active = false; controller.abort() }
+      .then(nextData => setData(nextData))
+      .catch(error => { if (error.code !== 'CANCELLED') setStatus({ busy: false, error: error.message }) })
+      .finally(() => setStatus((current) => ({ ...current, busy: false })))
+    return () => controller.abort()
   }, [query])
 
   const update = (key, value) => { setPage(1); setFilters((current) => ({ ...current, [key]: value })) }
 
+  const flipSort = (key) => setFilters((current) => ({ ...current, sort_by: key, sort_order: current.sort_by === key && current.sort_order === 'desc' ? 'asc' : 'desc' }))
+
   return (
     <section className="page-stack" aria-labelledby="history-heading">
-      <div className="page-heading compact-heading"><div><span className="eyebrow">History</span><h1 id="history-heading">Analysis history</h1><p>Search and review stored results within the current authenticated workspace.</p></div><span className="microcopy">{data.total} matching records</span></div>
+      <div className="page-heading"><div><span className="eyebrow">Forensics log</span><h1 id="history-heading">Analysis history</h1><p>Search stored analysis metadata inside the authenticated workspace.</p></div><span className="record-pill">{data.total} records</span></div>
       {status.error && <div className="error" role="alert">{status.error}</div>}
-      <section className="panel filter-panel" aria-labelledby="filter-heading">
-        <div className="section-title-row"><div><span className="eyebrow">Filters</span><h2 id="filter-heading">Refine results</h2></div>{status.busy && <span className="microcopy" role="status">Loading…</span>}</div>
+
+      <section className="panel filter-panel">
+        <div className="section-title-row"><div><span className="eyebrow">Filter console</span><h2>Find a record</h2></div>{status.busy && <span className="microcopy" role="status">Loading…</span>}</div>
         <div className="filter-grid">
-          <label className="wide">Search sender or subject<input value={filters.q} onChange={(event) => update('q', event.target.value)} placeholder="Search email metadata" /></label>
-          <label>Classification<select value={filters.classification} onChange={(event) => update('classification', event.target.value)}>{classifications.map((item) => <option key={item} value={item}>{item || 'All classifications'}</option>)}</select></label>
-          <label>Minimum risk<input type="number" min="0" max="100" value={filters.min_risk} onChange={(event) => update('min_risk', event.target.value)} /></label>
-          <label>Maximum risk<input type="number" min="0" max="100" value={filters.max_risk} onChange={(event) => update('max_risk', event.target.value)} /></label>
-          <label>From date<input type="date" value={filters.date_from.replace(/T.*$/, '')} onChange={(event) => update('date_from', event.target.value ? event.target.value + 'T00:00:00Z' : '')} /></label>
-          <label>To date<input type="date" value={filters.date_to.replace(/T.*$/, '')} onChange={(event) => update('date_to', event.target.value ? event.target.value + 'T23:59:59Z' : '')} /></label>
-          <label>Sort by<select value={filters.sort_by} onChange={(event) => update('sort_by', event.target.value)}><option value="created_at">Date</option><option value="risk_score">Risk</option><option value="classification">Classification</option><option value="sender">Sender</option><option value="subject">Subject</option></select></label>
-          <label>Order<select value={filters.sort_order} onChange={(event) => update('sort_order', event.target.value)}><option value="desc">Newest / highest first</option><option value="asc">Oldest / lowest first</option></select></label>
+          <label className="wide">Search sender, subject or message ID<input value={filters.q} onChange={(e)=>update('q',e.target.value)} placeholder="Search protected workspace"/></label>
+          <label>Verdict<select value={filters.classification} onChange={(e)=>update('classification',e.target.value)}>{classifications.map((item)=><option key={item} value={item}>{item||'All verdicts'}</option>)}</select></label>
+          <label>Minimum risk<input type="number" min="0" max="100" value={filters.min_risk} onChange={(e)=>update('min_risk',e.target.value)}/></label>
+          <label>Maximum risk<input type="number" min="0" max="100" value={filters.max_risk} onChange={(e)=>update('max_risk',e.target.value)}/></label>
+          <label>From date<input type="date" value={filters.date_from.replace(/T.*$/,'')} onChange={(e)=>update('date_from',e.target.value?e.target.value+'T00:00:00Z':'')}/></label>
+          <label>To date<input type="date" value={filters.date_to.replace(/T.*$/,'')} onChange={(e)=>update('date_to',e.target.value?e.target.value+'T23:59:59Z':'')}/></label>
+          <label>Sort by<select value={filters.sort_by} onChange={(e)=>update('sort_by',e.target.value)}><option value="created_at">Recorded time</option><option value="risk_score">Risk score</option><option value="classification">Verdict</option><option value="sender">Sender</option><option value="subject">Subject</option></select></label>
+          <button className="button secondary filter-apply" onClick={()=>setPage(1)}>Refresh results</button>
         </div>
+        <div className="filter-chip-row">{filters.classification && <button className="filter-chip active" onClick={()=>update('classification','')}>{filters.classification} ×</button>}{filters.q && <button className="filter-chip active" onClick={()=>update('q','')}>{filters.q} ×</button>}{(filters.classification||filters.q||filters.min_risk||filters.max_risk||filters.date_from||filters.date_to) && <button className="text-action" onClick={()=>setFilters((current)=>({...current,q:'',classification:'',min_risk:'',max_risk:'',date_from:'',date_to:''}))}>Clear filters</button>}</div>
       </section>
-      <section className="panel" aria-labelledby="history-table-heading">
-        <div className="section-title-row"><div><span className="eyebrow">Results</span><h2 id="history-table-heading">Stored analyses</h2></div><span className="microcopy">Page {data.page} of {Math.max(1, data.pages)}</span></div>
-        {data.items.length ? <div className="table-wrap"><table className="responsive-table"><thead><tr><th>Date</th><th>Sender</th><th>Subject</th><th>Classification</th><th>Risk</th><th>Priority</th></tr></thead><tbody>{data.items.map((item) => <tr key={item.request_id + '-' + item.message_id} tabIndex="0" onClick={() => onOpenAnalysis(item.message_id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpenAnalysis(item.message_id) } }}><td data-label="Date">{new Date(item.created_at).toLocaleString()}</td><td data-label="Sender" className="break-value">{item.sender}</td><td data-label="Subject" className="break-value">{item.subject || '—'}</td><td data-label="Classification"><span className={'status-badge compact ' + stateClass(item.classification)}>{item.classification}</span></td><td data-label="Risk">{Math.round(item.risk_score)}</td><td data-label="Priority">{item.priority || '—'}</td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>{status.busy ? 'Loading history…' : 'No matching analyses'}</strong><span>Adjust the filters or analyze an email to create stored history.</span></div>}
-        <div className="pagination" aria-label="History pagination"><button className="button secondary" disabled={page <= 1 || status.busy} onClick={() => setPage((current) => current - 1)}>Previous</button><span>Page {data.page} / {Math.max(1, data.pages)}</span><button className="button secondary" disabled={!data.pages || page >= data.pages || status.busy} onClick={() => setPage((current) => current + 1)}>Next</button></div>
+
+      <section className="panel">
+        <div className="section-title-row"><div><span className="eyebrow">Records</span><h2>Stored analyses</h2></div><span className="microcopy">Page {data.page} / {Math.max(1,data.pages)}</span></div>
+        {data.items.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Recorded</th><th>Sender</th><th>Subject</th><th>Verdict</th><th>Risk</th><th>Priority</th></tr></thead><tbody>{data.items.map((item)=>{const meta=verdictMeta(item.classification);return <tr key={item.request_id+'-'+item.message_id} tabIndex="0" onClick={()=>onOpenAnalysis(item.message_id)} onKeyDown={(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpenAnalysis(item.message_id)}}}><td data-label="Recorded">{new Date(item.created_at).toLocaleString()}</td><td data-label="Sender" className="break-value mono-text">{item.sender}</td><td data-label="Subject" className="break-value">{item.subject||'—'}</td><td data-label="Verdict"><span className={'verdict-badge compact '+stateClass(item.classification)}><b>{meta.icon}</b>{item.classification}</span></td><td data-label="Risk">{Math.round(item.risk_score)}</td><td data-label="Priority">{item.priority?<span className={'priority-chip '+item.priority.toLowerCase()}>{item.priority}</span>:<span className="withheld-text">withheld</span>}</td></tr>})}</tbody></table></div> : <div className="empty-state"><div className="empty-illustration">≡</div><strong>{status.busy?'Loading history…':'No matching analyses'}</strong><span>Adjust filters or analyze another email to create stored history.</span></div>}
+        <div className="pagination"><button className="button secondary" disabled={page<=1||status.busy} onClick={()=>setPage(v=>v-1)}>Previous</button><span>Page {data.page} / {Math.max(1,data.pages)}</span><button className="button secondary" disabled={!data.pages||page>=data.pages||status.busy} onClick={()=>setPage(v=>v+1)}>Next</button></div>
       </section>
     </section>
   )
