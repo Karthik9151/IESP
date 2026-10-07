@@ -5,6 +5,7 @@ import re
 import time
 import uuid
 from email.utils import parseaddr
+from typing import Annotated
 
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -130,7 +131,7 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         return ReadyResponse(status="ready", blockers=[])
 
     @app.post("/api/v1/analyze", response_model=AnalysisResponse)
-    async def analyze(request: Request, payload: EmailRequest, context: AuthorizationContext = Depends(require_api_key(settings))):
+    async def analyze(request: Request, payload: EmailRequest, context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
         authorize_analysis(context)
         started = time.perf_counter()
         result = service.analyze(_to_email(payload), request.state.request_id)
@@ -138,19 +139,19 @@ def create_app(settings: Settings | None = None, service: AnalysisService | None
         return _response(result)
 
     @app.get("/api/v1/stats", response_model=StatsResponse)
-    async def stats(context: AuthorizationContext = Depends(require_api_key(settings))):
+    async def stats(context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
         authorize_analysis(context)
         return StatsResponse(**service.stats())
 
     @app.get("/api/v1/recent")
-    async def recent(limit: int = 20, context: AuthorizationContext = Depends(require_api_key(settings))):
+    async def recent(limit: int = 20, context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
         authorize_analysis(context)
         if limit < 1 or limit > 100:
             raise HTTPException(status_code=422, detail={"code": "INVALID_LIMIT", "message": "Limit must be 1-100."})
         return {"items": service.recent(limit)}
 
     @app.get("/api/v1/analysis/{message_id}")
-    async def analysis(message_id: str, context: AuthorizationContext = Depends(require_api_key(settings))):
+    async def analysis(message_id: str, context: Annotated[AuthorizationContext, Depends(require_api_key(settings))]):
         authorize_analysis(context)
         result = service.get(message_id)
         if result is None:
