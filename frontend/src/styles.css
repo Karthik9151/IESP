@@ -494,3 +494,16 @@ textarea{resize:vertical;line-height:1.5}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+.sidebar-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:34px;margin-bottom:8px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:10px;font-weight:800}
+.sidebar-toggle:hover{color:var(--cyan);border-color:rgba(34,211,238,.28)}
+.app-layout.sidebar-collapsed{grid-template-columns:76px minmax(0,1fr)}
+.sidebar.collapsed .workspace-card{display:none}
+.sidebar.collapsed .sidebar-toggle{justify-content:center}
+.sidebar.collapsed .sidebar-toggle small{display:none}
+.sidebar.collapsed .primary-nav button{grid-template-columns:1fr;justify-items:center;padding-inline:7px}
+.sidebar.collapsed .primary-nav button>span:nth-child(2),.sidebar.collapsed .primary-nav button>kbd{display:none}
+.sidebar.collapsed .sidebar-callout{display:none}
+.sidebar.collapsed .logout-button{justify-content:center;font-size:0}
+.sidebar.collapsed .logout-button span{font-size:16px}
+@media(max-width:980px){.sidebar-toggle{display:none}.app-layout.sidebar-collapsed{display:block}}
