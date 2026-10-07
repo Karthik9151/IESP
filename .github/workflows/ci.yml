@@ -2,7 +2,7 @@ name: IESP CI
 
 on:
   push:
-    branches: [main, development]
+    branches: [main, development, furnished-design]
   pull_request:
     branches: [main, development]
 
@@ -37,7 +37,7 @@ jobs:
           tests/test_model_bootstrap.py
 
   backend-regression:
-    name: Backend regression tests (non-blocking)
+    name: Backend regression tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
