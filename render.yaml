@@ -45,7 +45,7 @@ services:
     staticPublishPath: ./frontend/dist
     buildCommand: >-
       cd frontend &&
-      if test -f package-lock.json; then npm ci; else npm install --no-audit --no-fund; fi &&
+      npm ci &&
       npm run build
     envVars:
       - key: VITE_API_BASE_URL
