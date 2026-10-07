@@ -27,18 +27,13 @@ export function verdictMeta(classification) {
 }
 
 export function priorityLabel(result) {
-  if (!isPriorityEligible(result)) return null
-  return result.priority?.label || null
+  return isPriorityEligible(result) ? result.priority?.label || null : null
 }
 
 export function defangText(value = '') {
-  return String(value)
-    .replace(/https:\/\//gi, 'hxxps://')
-    .replace(/http:\/\//gi, 'hxxp://')
-    .replace(/ftp:\/\//gi, 'fxp://')
-    .replace(/([a-z0-9-]+)\./gi, '$1[.]')
-}
-
-export function safeUrl(value = '') {
-  return String(value).replace(/^https:\/\//i, 'hxxps://').replace(/^http:\/\//i, 'hxxp://')
+  let text = String(value)
+  text = text.replace(/\bhttps?:\/\/[^\s<>"']+/gi, (url) =>
+    url.replace(/^https?:\/\//i, (scheme) => scheme.replace('http', 'hxxp')).replace(/\./g, '[.]')
+  )
+  return text.replace(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi, (host) => host.replace(/\./g, '[.]'))
 }
