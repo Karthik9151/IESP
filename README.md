@@ -34,7 +34,7 @@ Priority is never returned for PHISHING, SUSPICIOUS, or REVIEW REQUIRED.
 
 ## Current GitHub / deployment state
 
-`main` is the current release/deployment branch. The `furnished-design` branch was the hardening branch and is now six commits behind `main`; it is retained as project history rather than treated as the deployment source.
+`main` is the current release/deployment branch. The `final-design` branch was the hardening branch and has been merged into `main`; `main` is the production/reference branch.
 
 Render is configured from `render.yaml` and pins both the backend and frontend services to `main`.
 
@@ -113,6 +113,16 @@ VADER sentiment + engineered email features + Logistic Regression. P1/P2/P3 are 
 ### Operations
 - `GET /health`
 - `GET /ready`
+
+## Live demo
+
+Production frontend: `https://iesp-frontend.onrender.com`  
+Render service display name: `iesp-home`  
+Production backend: `https://iesp-backend.onrender.com`
+
+The Render service is named `iesp-home`, while its existing Render-managed subdomain remains `iesp-frontend.onrender.com`. This does not affect application behavior.
+
+For a college demonstration, use the production frontend URL above and a prepared `.eml` sample so the flow is repeatable.
 
 ## .eml demo workflow
 
@@ -207,7 +217,7 @@ Use this order for a 5–8 minute college demo:
 6. Open History
 7. Open Reports
 8. Open Settings
-9. Show Gmail / Microsoft connection controls
+9. Show Gmail / Microsoft connection controls (live provider OAuth only when provider credentials are configured and the flow has been tested)
 10. Logout
 ```
 
