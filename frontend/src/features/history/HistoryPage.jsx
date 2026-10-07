@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { stateClass, verdictMeta } from '../../lib/security'
-import { api } from '../../api'
 import ResultPanel from '../analysis/ResultPanel'
 
 const classifications = ['', 'PHISHING', 'SUSPICIOUS', 'REVIEW REQUIRED', 'NON-PHISHING']
