@@ -56,9 +56,10 @@ def test_health_public():
 
 def test_auth_failure_and_success():
     client, key = make_client()
-    assert client.post("/api/v1/analyze", json=BODY).status_code == 401
+    first = client.post("/api/v1/analyze", json=BODY)
+    assert first.status_code == 401, first.text
     response = client.post("/api/v1/analyze", json=BODY, headers={"X-API-Key": key})
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
 
 
 def test_non_phishing_receives_priority():
