@@ -1,6 +1,6 @@
 # IESP — Cyber Defence Command Centre UI
 
-This branch redesigns the existing React dashboard without changing the FastAPI routes, PostgreSQL behavior, session-cookie authentication, or provider OAuth contracts.
+The React dashboard provides the operator-facing security workspace without changing the FastAPI routes, PostgreSQL behavior, session-cookie authentication, or provider OAuth contracts.
 
 ## Run
 
@@ -36,7 +36,7 @@ Priority P1/P2/P3 is displayed only when the API returns a priority for a NON-PH
 
 > Priority withheld – security review first
 
-The UI explicitly describes P1/P2/P3 as project proxy labels rather than human-annotated urgency.
+The UI explicitly describes P1/P2/P3 as proxy labels rather than human-annotated urgency.
 
 ## Safe email presentation
 
