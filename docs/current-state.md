@@ -13,7 +13,7 @@
 | Authentication | HARDENED | Server-side session + HTTP-only cookie; browser API-key path removed |
 | Authorization | HARDENED | Analysis/history/stats/report lookups are workspace-scoped |
 | SQLite repository | HARDENED | Sender/recipients/subject/model score/version metadata are persisted |
-| PostgreSQL repository | HARDENED | Explicit PostgreSQL schema/types/indexes; no SQLite-to-Postgres string replacement |
+| PostgreSQL repository | VERIFIED | Real PostgreSQL 16 CI service exercised schema, auth/session/expiry, metadata persistence, workspace isolation, and transaction rollback |
 | Error contract | HARDENED | Nested error object with request ID and optional retry metadata |
 | Rate limiting | IMPLEMENTED | Per-user in-memory 429 + Retry-After; distributed store remains future work |
 | \`.eml\` backend | HARDENED | Bounded stdlib MIME parsing, no execution/network access |
@@ -23,7 +23,7 @@
 | Security headers/CSP | HARDENED | Nginx + Render headers; production HSTS |
 | CI/CD | HARDENED | Blocking test/build/security/contract jobs |
 | Model release | PRESERVED | Existing \`models-v1\` bootstrap and verification flow retained |
-| External deployment | NOT VERIFIED | Render/production browser/PostgreSQL not exercised here |
+| External deployment | NOT VERIFIED | Render production endpoint/browser flow was not accessible from the current environment |
 | Live provider OAuth | NOT VERIFIED | Requires user-owned provider registration and consent |
 
 ## Verified local checks
@@ -36,8 +36,8 @@
 
 ## Known repository constraints
 
-1. \`package-lock.json\` is not present, so deterministic Node dependency installation is not yet claimable.
-2. Live Render and production PostgreSQL behavior are not verified in this environment.
+1. \`frontend/package-lock.json\` is committed and deterministic Node dependency installation is enforced with \`npm ci\` in CI, the frontend image, and Render.
+2. Live Render deployment and production browser/API behavior are not verified in this environment.
 3. Live Gmail/Microsoft OAuth requires external application configuration/consent.
 4. Legacy analysis rows from the pre-hardening schema may retain empty sender/subject values because those values were never stored. New analyses persist actual metadata.
 

@@ -69,6 +69,10 @@ TF-IDF word unigrams/bigrams + LinearSVC. \`decision_function\` is a ranking mar
 ### Priority
 VADER + engineered email features + Logistic Regression. P1/P2/P3 are deterministic proxy/project labels, not human urgency annotations.
 
+## Verification status
+
+The \`furnished-design\` CI pipeline has a completed PASS run covering backend/security tests, frontend tests/build, dependency audits, full-history secret scanning, generated OpenAPI contract validation, real PostgreSQL 16 integration tests, and Docker image builds. Live Render/browser deployment and live provider OAuth remain unverified.
+
 ## Security controls
 
 Email content is treated only as untrusted data. Attachments are metadata-only and never executed. URLs are inspected structurally and never automatically visited. Local/private destinations are escalated as SSRF-sensitive. HTML is analyzed as text and is never rendered by the dashboard.

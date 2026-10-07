@@ -2,7 +2,7 @@
 
 ## Authentication
 
-All \`/api/v1/*\` endpoints require a valid server-side session cookie.
+Protected \`/api/v1/*\` endpoints require a valid server-side session cookie. Registration and login establish the session; logout is intentionally idempotent and clears the current cookie even when no valid session is present.
 
 Login or registration sets an HTTP-only cookie. The browser does not send an API key or bearer token. In production the cookie is Secure and the deployment uses explicit CORS origins.
 
@@ -79,6 +79,8 @@ Priority is returned only when the security classification is \`NON-PHISHING\` a
 \`\`\`
 
 The API uses 401 for missing/invalid sessions, 404 for workspace-scoped missing objects, 413 for oversized requests, 422 for validation/parse errors, 429 for rate limits, and 500 for sanitized internal failures.
+
+OpenAPI exposes the session-cookie security scheme for protected operations, together with success, error, pagination, analysis, and report schemas.
 
 Analysis rate limiting is currently in-memory and keyed by authenticated user. A Redis/provider-backed store can replace it later without changing the API contract.
 
