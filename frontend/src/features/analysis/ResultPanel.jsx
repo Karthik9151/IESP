@@ -79,10 +79,10 @@ export default function ResultPanel({ data, preview }) {
         </section>
 
         <section className="panel" aria-labelledby="evidence-heading">
-          <div className="section-title-row"><div><span className="eyebrow">ML evidence</span><h3 id="evidence-heading">Model decision margin</h3></div><span className="tooltip" title="This is the LinearSVC decision margin used for ranking, not a probability.">?</span></div>
+          <div className="section-title-row"><div><span className="eyebrow">ML evidence</span><h3 id="evidence-heading">Model decision margin</h3></div><span className="tooltip" title="This is the LinearSVC decision margin used for ranking; it is not a confidence percentage.">?</span></div>
           <EvidenceGauge value={security.model_score} />
           <div className="policy-risk-score"><strong>Policy risk score</strong><span>{typeof security.risk_score === 'number' && Number.isFinite(security.risk_score) ? Math.round(security.risk_score) + '/100' : 'Not available'}</span><small>Application risk/policy score, not a probability.</small></div>
-          <p className="microcopy">A LinearSVC margin indicates relative evidence strength. It is not calibrated as a probability or confidence percentage.</p>
+          <p className="microcopy">A LinearSVC margin indicates relative evidence strength. It is not calibrated as a confidence percentage.</p>
         </section>
 
         <section className="panel priority-card" aria-labelledby="priority-heading">
