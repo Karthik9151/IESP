@@ -78,6 +78,12 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Full-history secret scan
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo" \
+            zricethezav/gitleaks:v8.24.3 \
+            git --redact --exit-code 2 --log-opts="--full-history --all" /repo
 
   contract:
     name: API contract validation
