@@ -29,7 +29,7 @@ For PHISHING, SUSPICIOUS and REVIEW REQUIRED, `priority` is `null`.
 
 ## Authentication
 
-`X-API-Key` is sourced from environment configuration and checked with constant-time comparison. Keys are never hard-coded or logged. Production requires a configured API key.
+`session cookie` is sourced from environment configuration and checked with constant-time comparison. Keys are never hard-coded or logged. Production requires a configured API key.
 
 ## Error contract
 
