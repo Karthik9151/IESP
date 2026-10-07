@@ -32,7 +32,7 @@ test('scans frontend source for unsafe HTML rendering, navigation, and browser c
     'X-API-Key',
     'Authorization: Bearer',
   ]
-  const externalImage = /<img[^>]+src\s*=\s*["'][^"']*(https?:|\\/\\/)/i
+  const externalImage = /<img[^>]+src\s*=\s*["'](?:https?:|\/\/)/i
 
   async function walk(dir) {
     const entries = await fs.readdir(dir, { withFileTypes: true })
@@ -40,7 +40,7 @@ test('scans frontend source for unsafe HTML rendering, navigation, and browser c
     for (const entry of entries) {
       const target = path.join(dir, entry.name)
       if (entry.isDirectory()) files.push(...await walk(target))
-      else if (/\\.(m?js|jsx)$/.test(entry.name)) files.push(target)
+      else if (/\.(m?js|jsx)$/.test(entry.name)) files.push(target)
     }
     return files
   }
