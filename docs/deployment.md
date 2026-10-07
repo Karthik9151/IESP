@@ -84,7 +84,7 @@ Render's free web services have ephemeral filesystems, so the project's SQLite h
 
 ## CI
 
-GitHub Actions performs Python compilation/tests, frontend tests/build, dependency auditing and secret scanning. CI #47 is the current green baseline.
+GitHub Actions performs Python compilation/tests, frontend tests/build, dependency auditing and secret scanning. CI #48 is the current green baseline.
 
 ## Free-hosting limitation
 
