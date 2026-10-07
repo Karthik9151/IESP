@@ -120,7 +120,7 @@ class SecurityResponse(StrictModel):
     risk_score: float = Field(ge=0, le=100)
     model_score: float | None = None
     model_score_kind: Literal["decision_margin", "unavailable"]
-    reasons: list[SecurityReason] = Field(default_factory=list)
+    reasons: list[SecurityReason]
 
 
 class PriorityResponse(StrictModel):
