@@ -168,9 +168,9 @@ class RecentAnalysisItem(StrictModel):
 class PaginatedAnalysisResponse(StrictModel):
     items: list[RecentAnalysisItem]
     total: int
-    page: int = 1
-    page_size: int = 25
-    pages: int = 0
+    page: int
+    page_size: int
+    pages: int
 
 
 class StatsResponse(StrictModel):
