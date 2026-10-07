@@ -41,7 +41,7 @@ Security classification is authoritative and precedes priority. Untrusted email 
 - Security: header, URL, attachment and HTML analyzers plus configurable decision policy.
 - ML: accepted M1 data pipeline, phishing classifier, proxy-label priority classifier.
 - Backend: FastAPI validation/auth/service/repository boundary.
-- Persistence: SQLite metadata repository for the academic prototype.
+- Persistence: SQLite metadata repository for local and single-instance deployments; PostgreSQL is the production persistence tier.
 - Frontend: React/Vite with safe text handling.
 - Providers: Gmail and Microsoft Graph read-only adapters.
 - Deployment: Docker/Compose and GitHub Actions.
