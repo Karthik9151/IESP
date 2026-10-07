@@ -2,7 +2,7 @@
 
 ## M1 data contract
 
-Accepted project fingerprint: `34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582`. Split sizes: train 76,069; validation 16,300; test 16,301. Structural preparation occurs before splitting.
+Accepted dataset fingerprint: `34d78adcbf9a0b4033bf47a768eea0ce42b7e1536fdad523327c2a05c4fb4582`. Split sizes: train 76,069; validation 16,300; test 16,301. Structural preparation occurs before splitting.
 
 ## Phishing model
 
@@ -10,7 +10,7 @@ TF-IDF word analyzer with unigrams/bigrams, lowercase, accent stripping and subl
 
 ## Priority model
 
-VADER sentiment plus engineered message/urgency/deadline/action/time features feeds Logistic Regression. P1/P2/P3 are deterministic proxy/project labels and must not be presented as human annotations.
+VADER sentiment plus engineered message/urgency/deadline/action/time features feeds Logistic Regression. P1/P2/P3 are deterministic proxy labels and must not be presented as human annotations.
 
 ## Reproducibility
 
