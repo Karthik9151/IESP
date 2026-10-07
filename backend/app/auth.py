@@ -6,7 +6,8 @@ import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Security
+from fastapi.security import APIKeyCookie
 
 
 def hash_password(password: str) -> str:
@@ -56,8 +57,11 @@ def clear_session(repo, token: str | None) -> None:
 
 
 def require_session(repo, settings):
-    def dependency(request: Request) -> AuthorizationContext:
-        token = request.cookies.get(settings.session_cookie_name)
+    cookie_scheme = APIKeyCookie(name=settings.session_cookie_name, scheme_name="IESPSessionCookie", auto_error=False)
+
+    def dependency(request: Request, token: str | None = Security(cookie_scheme)) -> AuthorizationContext:
+        if token is None:
+            token = request.cookies.get(settings.session_cookie_name)
         if not token:
             raise HTTPException(401, detail={"code": "AUTH_REQUIRED", "message": "Authentication is required."})
         row = repo.get_session(token_hash(token))
